@@ -21,19 +21,19 @@ namespace Biscuit {
         /// </summary>
         /// <param name="pt"></param>
         /// <returns></returns>
-        public abstract xPoint2d Trans(xPoint2d pt);
+        public abstract CV.Point2d Trans(CV.Point2d pt);
 
         /// <summary>
         /// Inverse Transforms point
         /// </summary>
         /// <param name="pt"></param>
         /// <returns></returns>
-        public abstract xPoint2d TransI(xPoint2d pt);
+        public abstract CV.Point2d TransI(CV.Point2d pt);
 
 
-        public bool PtInRect(xPoint2d ptLeftBottom, xPoint2d ptRightTop, xPoint2d pt) {
-            return (pt.x >= ptLeftBottom.x) && (pt.x <= ptRightTop.x)
-                && (pt.y >= ptLeftBottom.y) && (pt.y <= ptRightTop.y);
+        public bool PtInRect(CV.Point2d ptLeftBottom, CV.Point2d ptRightTop, CV.Point2d pt) {
+            return (pt.X >= ptLeftBottom.X) && (pt.X <= ptRightTop.X)
+                && (pt.Y >= ptLeftBottom.Y) && (pt.Y <= ptRightTop.Y);
         }
 
         /// <summary>
@@ -43,13 +43,13 @@ namespace Biscuit {
         /// <param name="ptsDest">dest [2,2] enclosing Rectangle.</param>
         /// <param name="pt">Point</param>
         /// <returns>Transformed pt</returns>
-        protected static xPoint2d Transform2dLinear(xPoint2d[,] ptsSrc, xPoint2d[,] ptsDest, xPoint2d pt) {
-            Func<xPoint2d, double> TERM1 = p => p.x;
-            Func<xPoint2d, double> TERM2 = p => p.y;
-            Func<xPoint2d, double> TERM3 = p => p.x * p.y;
-            Func<xPoint2d, double> TERM4 = p => 1.0;
+        protected static CV.Point2d Transform2dLinear(CV.Point2d[,] ptsSrc, CV.Point2d[,] ptsDest, CV.Point2d pt) {
+            Func<CV.Point2d, double> TERM1 = p => p.X;
+            Func<CV.Point2d, double> TERM2 = p => p.Y;
+            Func<CV.Point2d, double> TERM3 = p => p.X * p.Y;
+            Func<CV.Point2d, double> TERM4 = p => 1.0;
 
-            xPoint2d[] pts = new xPoint2d[4];
+            CV.Point2d[] pts = new CV.Point2d[4];
             pts[0] = ptsSrc[0, 0];
             pts[1] = ptsSrc[1, 0];
             pts[2] = ptsSrc[1, 1];
@@ -68,29 +68,29 @@ namespace Biscuit {
             if (m2i == null || CV.Cv2.Determinant(m2i) == 0.0)
                 throw new Exception("Wrong xMatrix");
 
-            xPoint2d ptTrans = new xPoint2d(pt);
+            CV.Point2d ptTrans = pt;
             CV.Mat m1 = CV.Mat.Zeros(4, 1, CV.MatType.CV_64FC1);
             var m1_ = m1.GetGenericIndexer<double>();
 
             // x
-            m1_[0, 0] = ptsDest[0, 0].x;
-            m1_[1, 0] = ptsDest[1, 0].x;
-            m1_[2, 0] = ptsDest[1, 1].x;
-            m1_[3, 0] = ptsDest[0, 1].x;
+            m1_[0, 0] = ptsDest[0, 0].X;
+            m1_[1, 0] = ptsDest[1, 0].X;
+            m1_[2, 0] = ptsDest[1, 1].X;
+            m1_[3, 0] = ptsDest[0, 1].X;
 
             CV.Mat m3;
             m3 = m2i * m1;
             var m3_ = m3.GetGenericIndexer<double>();
-            ptTrans.x = m3_[0, 0] * TERM1(pt) + m3_[1, 0] * TERM2(pt) + m3_[2, 0] * TERM3(pt) + m3_[3, 0] * TERM4(pt);
+            ptTrans.X = m3_[0, 0] * TERM1(pt) + m3_[1, 0] * TERM2(pt) + m3_[2, 0] * TERM3(pt) + m3_[3, 0] * TERM4(pt);
 
-            m1_[0, 0] = ptsDest[0, 0].y;
-            m1_[1, 0] = ptsDest[1, 0].y;
-            m1_[2, 0] = ptsDest[1, 1].y;
-            m1_[3, 0] = ptsDest[0, 1].y;
+            m1_[0, 0] = ptsDest[0, 0].Y;
+            m1_[1, 0] = ptsDest[1, 0].Y;
+            m1_[2, 0] = ptsDest[1, 1].Y;
+            m1_[3, 0] = ptsDest[0, 1].Y;
 
             m3 = m2i * m1;
             m3_ = m3.GetGenericIndexer<double>();
-            ptTrans.y = m3_[0, 0] * TERM1(pt) + m3_[1, 0] * TERM2(pt) + m3_[2, 0] * TERM3(pt) + m3_[3, 0] * TERM4(pt);
+            ptTrans.Y = m3_[0, 0] * TERM1(pt) + m3_[1, 0] * TERM2(pt) + m3_[2, 0] * TERM3(pt) + m3_[3, 0] * TERM4(pt);
 
             return ptTrans;
         }
@@ -100,8 +100,8 @@ namespace Biscuit {
         // ptNew = m_mat(pt - ptShift) + ptOffset;
 
         public CV.Mat<double> m_mat;
-        public xPoint2d m_ptShift;
-        public xPoint2d m_ptOffset;
+        public CV.Point2d m_ptShift;
+        public CV.Point2d m_ptOffset;
 
         public xCoordTrans2d() {
             m_mat = new CV.Mat<double>(2, 2);
@@ -111,13 +111,13 @@ namespace Biscuit {
             m[1, 0] = 0.0;
 			m[1, 1] = 1.0;
 
-			m_ptShift = new xPoint2d(0, 0);
-            m_ptOffset = new xPoint2d(0, 0);
+			m_ptShift = new CV.Point2d(0, 0);
+            m_ptOffset = new CV.Point2d(0, 0);
         }
         public xCoordTrans2d(double dAngleRad) {
             m_mat = GetRotationMatrix(dAngleRad);
-            m_ptShift = new xPoint2d(0, 0);
-            m_ptOffset = new xPoint2d(0, 0);
+            m_ptShift = new CV.Point2d(0, 0);
+            m_ptOffset = new CV.Point2d(0, 0);
         }
 
         public static CV.Mat<double> GetRotationMatrix(double dAngleRad) {
@@ -132,22 +132,22 @@ namespace Biscuit {
             return mat;
         }
 
-        public override xPoint2d Trans(xPoint2d pt) {
-            xPoint2d pt2 = new xPoint2d(pt - m_ptShift);
+        public override CV.Point2d Trans(CV.Point2d pt) {
+            CV.Point2d pt2 = pt - m_ptShift;
             var m = m_mat.GetIndexer();
-            return new xPoint2d(m[0, 0] * pt2.x + m[0, 1] * pt2.y + m_ptOffset.x,
-                m[1, 0] * pt2.x + m[1, 1] * pt2.y + m_ptOffset.y);
+            return new CV.Point2d(m[0, 0] * pt2.X + m[0, 1] * pt2.Y + m_ptOffset.X,
+                m[1, 0] * pt2.X + m[1, 1] * pt2.Y + m_ptOffset.Y);
         }
-        public override xPoint2d TransI(xPoint2d pt) {
+        public override CV.Point2d TransI(CV.Point2d pt) {
             bool bOK = false;
             CV.Mat mat = m_mat.Inv();// (0.0, ref bOK);
             if (mat == null || CV.Cv2.Determinant(mat) == 0.0)
                 throw new Exception("No Inverse xMatrix.");
 
-            xPoint2d pt2 = new xPoint2d(pt - m_ptOffset);
+            CV.Point2d pt2 = pt - m_ptOffset;
             var m = mat.GetGenericIndexer<double>();
-            return new xPoint2d(m[0, 0] * pt2.x + m[0, 1] * pt2.y + m_ptShift.x,
-				m[1, 0] * pt2.x + m[1, 1] * pt2.y + m_ptShift.y);
+            return new CV.Point2d(m[0, 0] * pt2.X + m[0, 1] * pt2.Y + m_ptShift.X,
+				m[1, 0] * pt2.X + m[1, 1] * pt2.Y + m_ptShift.Y);
         }
     }
 
@@ -162,7 +162,7 @@ namespace Biscuit {
             m_dest = new xMeshTable(dest);
         }
 
-        public override xPoint2d Trans(xPoint2d pt) {
+        public override CV.Point2d Trans(CV.Point2d pt) {
 			try
 			{
                 pt = Trans(m_src, m_dest, pt);
@@ -171,23 +171,23 @@ namespace Biscuit {
             return pt;
         }
 
-        public override xPoint2d TransI(xPoint2d pt) {
+        public override CV.Point2d TransI(CV.Point2d pt) {
             return Trans(m_dest, m_src, pt);
         }
 
-        public bool IsInBound_Trans(xPoint2d pt)
+        public bool IsInBound_Trans(CV.Point2d pt)
         {
             int iy = 0, ix = 0;
             return m_src.FindEnclosingPTS(pt, ref iy, ref ix);            
         }
 
-        public bool IsInBound_Transl(xPoint2d pt)
+        public bool IsInBound_Transl(CV.Point2d pt)
         {
             int iy = 0, ix = 0;
             return m_dest.FindEnclosingPTS(pt, ref iy, ref ix);
         }
 
-        protected static xPoint2d Trans(xMeshTable src, xMeshTable dest, xPoint2d pt) {
+        protected static CV.Point2d Trans(xMeshTable src, xMeshTable dest, CV.Point2d pt) {
             if ((src == null) || (dest == null))
                 return pt;
 
@@ -198,8 +198,8 @@ namespace Biscuit {
                 //return pt;
 			}
 
-            xPoint2d[,] ptsSrc = new xPoint2d[2, 2];
-            xPoint2d[,] ptsDest = new xPoint2d[2, 2];
+            CV.Point2d[,] ptsSrc = new CV.Point2d[2, 2];
+            CV.Point2d[,] ptsDest = new CV.Point2d[2, 2];
             ptsSrc[0, 0] = src.At(iy-1, ix-1);
             ptsSrc[0, 1] = src.At(iy-1, ix);
             ptsSrc[1, 0] = src.At(iy, ix-1);

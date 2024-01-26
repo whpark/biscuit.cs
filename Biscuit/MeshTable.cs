@@ -9,16 +9,18 @@ using System;
 using System.Collections.Generic;
 using System.Text;
 
+using CV = OpenCvSharp;
+
 namespace Biscuit {
     public class xMeshTable {
-        public xPoint2d[,] m_pts;
+        public CV.Point2d[,] m_pts;
         public int rows => m_pts.GetLength(0);
         public int cols => m_pts.GetLength(1);
         public xMeshTable(int rows, int cols) {
-            m_pts = new xPoint2d[rows, cols];
+            m_pts = new CV.Point2d[rows, cols];
         }
-        public xMeshTable(int rows, int cols, xPoint2d value) {
-            m_pts = new xPoint2d[rows, cols];
+        public xMeshTable(int rows, int cols, CV.Point2d value) {
+            m_pts = new CV.Point2d[rows, cols];
             for (int y = 0; y < rows; y++) {
                 for (int x = 0; x < cols; x++)
                     m_pts[y, x] = value;
@@ -26,14 +28,14 @@ namespace Biscuit {
         }
 
         public xMeshTable(xMeshTable m) {
-            m_pts = m.m_pts.Clone() as xPoint2d[,];
+            m_pts = m.m_pts.Clone() as CV.Point2d[,];
         }
 
-        public ref xPoint2d At(int row, int col) {
+        public ref CV.Point2d At(int row, int col) {
             return ref m_pts[row, col];
         }
 
-        public xMeshTable SetAll(xPoint2d pt) {
+        public xMeshTable SetAll(CV.Point2d pt) {
             for (int y = 0; y < rows; y++) {
                 for (int x = 0; x < cols; x++)
                     At(y, x) = pt;
@@ -41,7 +43,7 @@ namespace Biscuit {
             return this;
         }
 
-        public xMeshTable ForAll(Func<xPoint2d[,], int, int, xPoint2d> func) {
+        public xMeshTable ForAll(Func<CV.Point2d[,], int, int, CV.Point2d> func) {
             for (int y = 0; y < rows; y++) {
                 for (int x = 0; x < cols; x++) {
                     m_pts[y, x] = func(m_pts, y, x);
@@ -50,15 +52,15 @@ namespace Biscuit {
             return this;
         }
 
-        public bool FindEnclosingPTS(xPoint2d pt, ref int iy, ref int ix) {
+        public bool FindEnclosingPTS(CV.Point2d pt, ref int iy, ref int ix) {
             iy = -1;
             ix = -1;
             for (int y = 0; y < rows; y++) {
-                if (pt.y > m_pts[y, 0].y)
+                if (pt.Y > m_pts[y, 0].Y)
                     continue;
                 iy = y;
                 for (int x = 0; x < cols; x++) {
-                    if (pt.x > m_pts[y, x].x)
+                    if (pt.X > m_pts[y, x].X)
                         continue;
                     ix = x;
                     break;

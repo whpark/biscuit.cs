@@ -16,6 +16,6 @@
         <vm:MainWindowViewModel/>
     </Design.DataContext>
 
-    <bsc:xMatView />
+    <bsc:xMatView Name="ui_view"/>
 
 </Window>

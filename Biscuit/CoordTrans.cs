@@ -96,35 +96,63 @@ namespace Biscuit {
         }
     }
 
+	public class xCoordTransScaleShift : ICoordTrans
+	{
+        // ptNew = m_mat(pt - ptShift) + ptOffset;
+
+        public double m_scale = 1.0;
+		public CV.Point2d m_origin;
+		public CV.Point2d m_offset;
+
+		public xCoordTransScaleShift()
+		{
+            m_scale = 1.0;
+			m_origin = new CV.Point2d(0, 0);
+			m_offset = new CV.Point2d(0, 0);
+		}
+
+		public override CV.Point2d Trans(CV.Point2d pt)
+		{
+			return new CV.Point2d(m_scale * (pt.X - m_origin.X) + m_offset.X, m_scale * (pt.Y - m_origin.Y) + m_offset.Y);
+		}
+		public override CV.Point2d TransI(CV.Point2d pt)
+		{
+			if (m_scale == 0.0)
+				throw new Exception("No Inverse");
+
+			return new CV.Point2d((pt.X - m_offset.X) / m_scale + m_origin.X, (pt.Y - m_offset.Y) / m_scale + m_origin.Y);
+		}
+	}
+	
     public class xCoordTrans2d : ICoordTrans {
         // ptNew = m_mat(pt - ptShift) + ptOffset;
 
-        public CV.Mat<double> m_mat;
-        public CV.Point2d m_ptShift;
-        public CV.Point2d m_ptOffset;
+        public CV.Mat m_mat;
+        public CV.Point2d m_origin;
+        public CV.Point2d m_offset;
 
         public xCoordTrans2d() {
-            m_mat = new CV.Mat<double>(2, 2);
-			var m = m_mat.GetIndexer();
+            m_mat = new CV.Mat(2, 2, CV.MatType.CV_64FC1);
+			var m = m_mat.GetGenericIndexer<double>();
 			m[0, 0] = 1.0;
             m[0, 1] = 0.0;
             m[1, 0] = 0.0;
 			m[1, 1] = 1.0;
 
-			m_ptShift = new CV.Point2d(0, 0);
-            m_ptOffset = new CV.Point2d(0, 0);
+			m_origin = new CV.Point2d(0, 0);
+			m_offset = new CV.Point2d(0, 0);
         }
         public xCoordTrans2d(double dAngleRad) {
             m_mat = GetRotationMatrix(dAngleRad);
-            m_ptShift = new CV.Point2d(0, 0);
-            m_ptOffset = new CV.Point2d(0, 0);
+			m_origin = new CV.Point2d(0, 0);
+			m_offset = new CV.Point2d(0, 0);
         }
 
-        public static CV.Mat<double> GetRotationMatrix(double dAngleRad) {
-            var mat = new CV.Mat<double>(2, 2);
+        public static CV.Mat GetRotationMatrix(double dAngleRad) {
+            var mat = new CV.Mat(2, 2, CV.MatType.CV_64FC1);
             double c = Math.Cos(dAngleRad);
             double s = Math.Sin(dAngleRad);
-            var m = mat.GetIndexer();
+            var m = mat.GetGenericIndexer<double>();
             m[0, 0] = c;
             m[0, 1] = -s;
             m[1, 0] = s;
@@ -133,10 +161,10 @@ namespace Biscuit {
         }
 
         public override CV.Point2d Trans(CV.Point2d pt) {
-            CV.Point2d pt2 = pt - m_ptShift;
-            var m = m_mat.GetIndexer();
-            return new CV.Point2d(m[0, 0] * pt2.X + m[0, 1] * pt2.Y + m_ptOffset.X,
-                m[1, 0] * pt2.X + m[1, 1] * pt2.Y + m_ptOffset.Y);
+            CV.Point2d pt2 = pt - m_origin;
+            var m = m_mat.GetGenericIndexer<double>();
+            return new CV.Point2d(m[0, 0] * pt2.X + m[0, 1] * pt2.Y + m_offset.X,
+                m[1, 0] * pt2.X + m[1, 1] * pt2.Y + m_offset.Y);
         }
         public override CV.Point2d TransI(CV.Point2d pt) {
             bool bOK = false;
@@ -144,10 +172,10 @@ namespace Biscuit {
             if (mat == null || CV.Cv2.Determinant(mat) == 0.0)
                 throw new Exception("No Inverse xMatrix.");
 
-            CV.Point2d pt2 = pt - m_ptOffset;
+            CV.Point2d pt2 = pt - m_offset;
             var m = mat.GetGenericIndexer<double>();
-            return new CV.Point2d(m[0, 0] * pt2.X + m[0, 1] * pt2.Y + m_ptShift.X,
-				m[1, 0] * pt2.X + m[1, 1] * pt2.Y + m_ptShift.Y);
+            return new CV.Point2d(m[0, 0] * pt2.X + m[0, 1] * pt2.Y + m_origin.X,
+				m[1, 0] * pt2.X + m[1, 1] * pt2.Y + m_origin.Y);
         }
     }
 

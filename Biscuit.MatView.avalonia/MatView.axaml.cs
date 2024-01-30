@@ -16,8 +16,12 @@ public partial class xMatView : UserControl
 {
 	public CV.Mat Image
 	{
-		get => ui_renderer.Image;
-		set => ui_renderer.Image = value;
+		get => m_img;
+		set
+		{
+			m_img = value;
+			Init();
+		}
 	}
 
 	public eZOOM ZoomMode
@@ -59,7 +63,7 @@ public partial class xMatView : UserControl
 		}
 	};
 
-	sOption m_option;
+	sOption m_option = new sOption();
 
 	protected Timer m_timerDraw;
 
@@ -73,18 +77,7 @@ public partial class xMatView : UserControl
 		12.5, 15, 17.5, 20, 25, 30, 35, 40, 45, 50, 60, 70, 80, 90, 100,
 		125, 150, 175, 200, 250, 300, 350, 400, 450, 500,
 		600, 700, 800, 900, 1_000,
-		//1250, 1500, 1750, 2000, 2500, 3000, 3500, 4000, 4500, 5000,
-		//6000, 7000, 8000, 9000, 10000,
-		//12500, 15000, 17500, 20000, 25000, 30000, 35000, 40000, 45000, 50000,
-		//60000, 70000, 80000, 90000, 100000,
-		//125000, 150000, 175000, 200000, 250000, 300000, 350000, 400000, 450000, 500000,
-		//600000, 700000, 800000, 900000, 1000000,
-		//1250000, 1500000, 1750000, 2000000, 2500000, 3000000, 3500000, 4000000, 4500000, 5000000,
-		//6000000, 7000000, 8000000, 9000000, 10000000,
-		//12500000, 15000000, 17500000, 20000000, 25000000, 30000000, 35000000, 40000000, 45000000, 50000000,
-		//60000000, 70000000, 80000000, 90000000
 	};
-
 
 	public xMatView()
 	{
@@ -100,9 +93,39 @@ public partial class xMatView : UserControl
 		InitZoom(eZoom);
 	}
 
+	protected override void OnSizeChanged(SizeChangedEventArgs e)
+	{
+		base.OnSizeChanged(e);
+
+		UpdateCT();
+	}
+
 	protected void ReserveDraw()
 	{
 		m_timerDraw.Change(1000 / 60, 1000 / 60);
+
+		if (m_img == null)
+			return;
+
+		var pt0 = m_ctScreenFromImage.Trans(new CV.Point2d());
+		var pt1 = m_ctScreenFromImage.Trans(new CV.Point2d(m_img.Cols, m_img.Rows));
+		if (pt0.X < 0)
+			pt0.X = 0;
+		if (pt0.Y < 0)
+			pt0.Y = 0;
+		if (pt1.X > ui_renderer.Width)
+			pt1.X = ui_renderer.Width;
+		if (pt1.Y > ui_renderer.Height)
+			pt1.Y = ui_renderer.Height;
+
+		var ptSource0 = m_ctScreenFromImage.TransI(pt0);
+		var ptSource1 = m_ctScreenFromImage.TransI(pt1);
+		var roi = misc.GetSafeROI(new CV.Rect2d(ptSource0.X, ptSource0.Y, ptSource1.X - ptSource0.X, ptSource1.Y - ptSource0.Y), new CV.Size(m_img.Cols, m_img.Rows));
+		ui_renderer.m_rectTarget = new CV.Rect2d(pt0.X, pt0.Y, pt1.X - pt0.X, pt1.Y - pt0.Y);
+		if (misc.IsRectEmpty(roi))
+			return;
+		ui_renderer.Image = Image.SubMat(roi);
+		ui_renderer.UpdateLayout();
 	}
 
 	protected void OnTimerDraw(object? state)
@@ -112,8 +135,6 @@ public partial class xMatView : UserControl
 
 	protected void InitZoom(eZOOM eZoom)
 	{
-		ReserveDraw();
-
 		m_option.eZOOM = eZoom;
 		if (m_img == null)
 			return;
@@ -121,13 +142,15 @@ public partial class xMatView : UserControl
 		switch (m_option.eZOOM)
 		{
 			case eZOOM.one2one:
-				_rectSource = new CV.Rect2d(0, 0, m_img.Cols, m_img.Rows);
-				_rectDest = new CV.Rect2d(0, 0, m_img.Cols, m_img.Rows);
+				//_rectSource = new CV.Rect2d(0, 0, m_img.Cols, m_img.Rows);
+				//_rectDest = new CV.Rect2d(0, 0, m_img.Cols, m_img.Rows);
 				break;
 			case eZOOM.fit2window:
-				_rectSource = new CV.Rect2d(0, 0, m_img.Cols, m_img.Rows);
+				//_rectSource = new CV.Rect2d(0, 0, m_img.Cols, m_img.Rows);
 				break;
 		}
+
+		UpdateCT();
 	}
 
 	public struct sMouseOperation
@@ -301,7 +324,7 @@ public partial class xMatView : UserControl
 			eZOOM.fit2window => Math.Min(sizeClient.Width / m_img.Cols, sizeClient.Height / m_img.Rows),
 			eZOOM.fit2width => sizeClient.Width / m_img.Cols,
 			eZOOM.fit2height => sizeClient.Height / m_img.Rows,
-			_ => -1.0,
+			_ => 1.0,
 		};
 		if (dScale > 0)
 			m_ctScreenFromImage.m_scale = dScale;
@@ -390,6 +413,8 @@ public partial class xMatView : UserControl
 					m_ctScreenFromImage.m_offset.Y += rectClient.Bottom - rectImageScreen.Bottom;
 			}
 		}
+
+		ReserveDraw();
 
 		return true;
 	}

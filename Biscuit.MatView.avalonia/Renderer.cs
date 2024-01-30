@@ -36,10 +36,9 @@ public class xRenderer : Control
 		get => m_img;
 		set {
 			m_img = value;
-			//Init();
 		}
 	}
-
+	public CV.Rect2d m_rectTarget { get; set; } = new CV.Rect2d(0, 0, 0, 0);
 
 	public xRenderer()
 	{
@@ -49,8 +48,6 @@ public class xRenderer : Control
 
 	public override void Render(DrawingContext context)
 	{
-		_timerDraw.Stop();
-
 		if (m_img == null)
 		{
 			context.DrawRectangle(Brushes.DarkGray, null, Bounds);
@@ -72,7 +69,9 @@ public class xRenderer : Control
 			new Avalonia.Vector(96, 96),
 			(int)m_img.Step()))
 		{
-			context.DrawImage(bmp, new Avalonia.Rect(0, 0, m_img.Cols, m_img.Rows), Bounds);
+			context.DrawImage(bmp,
+				new Avalonia.Rect(0, 0, m_img.Cols, m_img.Rows),
+				new Avalonia.Rect(m_rectTarget.X, m_rectTarget.Y, m_rectTarget.Width, m_rectTarget.Height));
 		}
 	}
 

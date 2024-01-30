@@ -28,11 +28,11 @@ namespace Biscuit.MatView.avalonia;
 
 public class xRenderer : Control
 {
-	private Avalonia.Threading.DispatcherTimer _timerDraw;
+	//private Avalonia.Threading.DispatcherTimer _timerDraw;
 
-	CV.Mat m_img;
+	CV.Mat? m_img;
 
-	public CV.Mat Image {
+	public CV.Mat? Image {
 		get => m_img;
 		set {
 			m_img = value;
@@ -42,8 +42,8 @@ public class xRenderer : Control
 
 	public xRenderer()
 	{
-		_timerDraw = new Avalonia.Threading.DispatcherTimer();
-		_timerDraw.Interval = TimeSpan.FromMilliseconds(1000 / 60);
+		//_timerDraw = new Avalonia.Threading.DispatcherTimer();
+		//_timerDraw.Interval = TimeSpan.FromMilliseconds(1000 / 60);
 	}
 
 	public override void Render(DrawingContext context)

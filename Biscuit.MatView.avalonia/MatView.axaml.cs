@@ -7,6 +7,7 @@ using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Controls.Primitives;
 using Avalonia.Markup.Xaml;
+using Avalonia.Threading;
 using static Biscuit.MatView.avalonia.xMatView;
 using CV = OpenCvSharp;
 
@@ -103,34 +104,20 @@ public partial class xMatView : UserControl
 	protected void ReserveDraw()
 	{
 		m_timerDraw.Change(1000 / 60, 1000 / 60);
-
 		if (m_img == null)
 			return;
-
-		var pt0 = m_ctScreenFromImage.Trans(new CV.Point2d());
-		var pt1 = m_ctScreenFromImage.Trans(new CV.Point2d(m_img.Cols, m_img.Rows));
-		if (pt0.X < 0)
-			pt0.X = 0;
-		if (pt0.Y < 0)
-			pt0.Y = 0;
-		if (pt1.X > ui_renderer.Width)
-			pt1.X = ui_renderer.Width;
-		if (pt1.Y > ui_renderer.Height)
-			pt1.Y = ui_renderer.Height;
-
-		var ptSource0 = m_ctScreenFromImage.TransI(pt0);
-		var ptSource1 = m_ctScreenFromImage.TransI(pt1);
-		var roi = misc.GetSafeROI(new CV.Rect2d(ptSource0.X, ptSource0.Y, ptSource1.X - ptSource0.X, ptSource1.Y - ptSource0.Y), new CV.Size(m_img.Cols, m_img.Rows));
-		ui_renderer.m_rectTarget = new CV.Rect2d(pt0.X, pt0.Y, pt1.X - pt0.X, pt1.Y - pt0.Y);
-		if (misc.IsRectEmpty(roi))
-			return;
-		ui_renderer.Image = Image.SubMat(roi);
-		ui_renderer.UpdateLayout();
 	}
 
 	protected void OnTimerDraw(object? state)
 	{
-		// todo: redraw
+		m_timerDraw.Change(Timeout.Infinite, Timeout.Infinite);
+		Dispatcher.UIThread.InvokeAsync(() =>
+		{
+			if (ui_renderer != null)
+			{
+				ui_renderer.InvalidateVisual();
+			}
+		});
 	}
 
 	protected void InitZoom(eZOOM eZoom)
@@ -138,17 +125,6 @@ public partial class xMatView : UserControl
 		m_option.eZOOM = eZoom;
 		if (m_img == null)
 			return;
-
-		switch (m_option.eZOOM)
-		{
-			case eZOOM.one2one:
-				//_rectSource = new CV.Rect2d(0, 0, m_img.Cols, m_img.Rows);
-				//_rectDest = new CV.Rect2d(0, 0, m_img.Cols, m_img.Rows);
-				break;
-			case eZOOM.fit2window:
-				//_rectSource = new CV.Rect2d(0, 0, m_img.Cols, m_img.Rows);
-				break;
-		}
 
 		UpdateCT();
 	}
@@ -268,7 +244,7 @@ public partial class xMatView : UserControl
 
 	public CV.Rect2d GetViewRect()
 	{
-		CV.Rect2d rect = new CV.Rect2d(0, 0, Bounds.Right, Bounds.Bottom);
+		CV.Rect2d rect = new CV.Rect2d(0, 0, ui_renderer.Bounds.Right, ui_renderer.Bounds.Bottom);
 		return rect;
 	}
 
@@ -302,8 +278,8 @@ public partial class xMatView : UserControl
 		g.rectImageScreen = rectImageScreen;
 		g.rectScrollRange = rectScrollRange;
 		return g;
-
 	}
+
 	public bool UpdateCT(bool bCenter = false, eZOOM eZoom = eZOOM.none)
 	{
 		if (m_img.Empty())
@@ -413,6 +389,23 @@ public partial class xMatView : UserControl
 					m_ctScreenFromImage.m_offset.Y += rectClient.Bottom - rectImageScreen.Bottom;
 			}
 		}
+
+		//pt0 = m_ctScreenFromImage.Trans(new CV.Point2d());
+		//pt1 = m_ctScreenFromImage.Trans(new CV.Point2d(m_img.Cols, m_img.Rows));
+		if (pt0.X < 0)
+			pt0.X = 0;
+		if (pt0.Y < 0)
+			pt0.Y = 0;
+		if (pt1.X > ui_renderer.Width)
+			pt1.X = ui_renderer.Width;
+		if (pt1.Y > ui_renderer.Height)
+			pt1.Y = ui_renderer.Height;
+
+		var ptSource0 = m_ctScreenFromImage.TransI(pt0);
+		var ptSource1 = m_ctScreenFromImage.TransI(pt1);
+		var roi = misc.GetSafeROI(new CV.Rect2d(ptSource0.X, ptSource0.Y, ptSource1.X - ptSource0.X, ptSource1.Y - ptSource0.Y), new CV.Size(m_img.Cols, m_img.Rows));
+		ui_renderer.m_rectTarget = new CV.Rect2d(pt0.X, pt0.Y, pt1.X - pt0.X, pt1.Y - pt0.Y);
+		ui_renderer.Image = misc.IsRectEmpty(roi) ? null : Image.SubMat(roi);
 
 		ReserveDraw();
 
@@ -526,6 +519,16 @@ public partial class xMatView : UserControl
 		return true;
 	}
 
+	protected void OnZoomMode(object sender, SelectionChangedEventArgs e)
+	{
+		if (ui_cmbZoomMode == null)
+			return;
+
+		if (ui_cmbZoomMode.SelectedIndex < 0)
+			return;
+		var eZoom = (eZOOM)ui_cmbZoomMode.SelectedIndex;
+		InitZoom(eZoom);
+	}
 
 }
 

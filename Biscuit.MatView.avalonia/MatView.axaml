@@ -8,7 +8,7 @@
 	<Grid RowDefinitions="Auto *" >
 		<!-- Toolbar -->
 		<Grid Grid.Row="0" ColumnDefinitions="Auto Auto Auto Auto *" >
-			<ComboBox Name="ui_cmbZoomMode" Grid.Column="0" SelectedIndex="1" Margin="2 0 0 0">
+			<ComboBox Name="ui_cmbZoomMode" Grid.Column="0" SelectedIndex="1" Margin="2 0 0 0" SelectionChanged="OnZoomMode">
 				<ComboBoxItem Content="1:1"/>
 				<ComboBoxItem Content="window"/>
 				<ComboBoxItem Content="width"/>

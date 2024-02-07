@@ -31,6 +31,7 @@ public class xRenderer : Control
 	//private Avalonia.Threading.DispatcherTimer _timerDraw;
 
 	CV.Mat? m_img;
+	Avalonia.Rect? m_rectSelected;
 
 	public CV.Mat? Image {
 		get => m_img;
@@ -39,6 +40,15 @@ public class xRenderer : Control
 		}
 	}
 	public CV.Rect2d m_rectTarget { get; set; } = new CV.Rect2d(0, 0, 0, 0);
+	public Avalonia.Rect? SelectedRect
+	{
+		get => m_rectSelected;
+		set
+		{
+			m_rectSelected = value;
+			InvalidateVisual();
+		}
+	}
 
 	public xRenderer()
 	{
@@ -53,6 +63,7 @@ public class xRenderer : Control
 			context.DrawRectangle(Brushes.DarkGray, null, Bounds);
 			return;
 		}
+		context.DrawRectangle(Brushes.Black, null, Bounds);
 
 		var ePixelFormat = m_img.Channels() switch
 		{
@@ -72,6 +83,11 @@ public class xRenderer : Control
 			context.DrawImage(bmp,
 				new Avalonia.Rect(0, 0, m_img.Cols, m_img.Rows),
 				new Avalonia.Rect(m_rectTarget.X, m_rectTarget.Y, m_rectTarget.Width, m_rectTarget.Height));
+		}
+
+		if (m_rectSelected != null)
+		{
+			context.DrawRectangle(null, new Pen(Brushes.Red, 2), m_rectSelected.Value);
 		}
 	}
 

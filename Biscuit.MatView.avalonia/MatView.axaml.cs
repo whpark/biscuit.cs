@@ -2,12 +2,17 @@ using System;
 using System.Drawing;
 using System.Linq;
 using System.Numerics;
+using System.Text;
 using System.Threading;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Controls.Primitives;
+using Avalonia.Input;
 using Avalonia.Markup.Xaml;
+using Avalonia.Remote.Protocol.Input;
+using Avalonia.Rendering;
 using Avalonia.Threading;
+using ReactiveUI;
 using static Biscuit.MatView.avalonia.xMatView;
 using CV = OpenCvSharp;
 
@@ -27,7 +32,7 @@ public partial class xMatView : UserControl
 
 	public eZOOM ZoomMode
 	{
-		get => m_option.eZOOM;
+		get => m_option.eZoom;
 		set => InitZoom(value);
 	}
 
@@ -36,7 +41,6 @@ public partial class xMatView : UserControl
 		public CV.Rect2d rectClient, rectImageScreen, rectScrollRange;
 	};
 
-	private CV.Mat m_imgOriginal;  // original image
 	private CV.Mat m_img;
 
 	public enum eZOOM : int { none = -1, one2one, fit2window, fit2width, fit2height, mouse_wheel_locked, free }
@@ -45,7 +49,7 @@ public partial class xMatView : UserControl
 
 	public struct sOption
 	{
-		public eZOOM eZOOM = eZOOM.fit2window;          // zoom mode
+		public eZOOM eZoom = eZOOM.fit2window;          // zoom mode
 		public bool bZoomLock = false;                  // if eZoom is NOT free, zoom is locked
 		public bool bPanningLock = true;                // image can be moved only eZoom == free
 		public bool bExtendedPanning = true;            // image can move out of screen
@@ -83,12 +87,14 @@ public partial class xMatView : UserControl
 	public xMatView()
 	{
 		InitializeComponent();
+
+		//ui_renderer.PointerPressed += OnMousePressed;
 		m_timerDraw = new Timer(OnTimerDraw);
 	}
 
 	public void Init()
 	{
-		eZOOM eZoom = m_option.eZOOM;
+		eZOOM eZoom = m_option.eZoom;
 		if (eZoom == eZOOM.none)
 			eZoom = eZOOM.fit2window;
 		InitZoom(eZoom);
@@ -122,7 +128,7 @@ public partial class xMatView : UserControl
 
 	protected void InitZoom(eZOOM eZoom)
 	{
-		m_option.eZOOM = eZoom;
+		m_option.eZoom = eZoom;
 		if (m_img == null)
 			return;
 
@@ -244,7 +250,12 @@ public partial class xMatView : UserControl
 
 	public CV.Rect2d GetViewRect()
 	{
-		CV.Rect2d rect = new CV.Rect2d(0, 0, ui_renderer.Bounds.Right, ui_renderer.Bounds.Bottom);
+		CV.Rect2d rect = new CV.Rect2d();
+		if (ui_renderer != null)
+		{
+			rect.Width = ui_renderer.Bounds.Right - ui_renderer.Bounds.Left;
+			rect.Height = ui_renderer.Bounds.Bottom - ui_renderer.Bounds.Top;
+		}
 		return rect;
 	}
 
@@ -286,7 +297,7 @@ public partial class xMatView : UserControl
 			return false;
 
 		if (eZoom == eZOOM.none)
-			eZoom = m_option.eZOOM;
+			eZoom = m_option.eZoom;
 
 		ui_cmbZoomMode.SelectedIndex = (int)eZoom;
 
@@ -300,7 +311,7 @@ public partial class xMatView : UserControl
 			eZOOM.fit2window => Math.Min(sizeClient.Width / m_img.Cols, sizeClient.Height / m_img.Rows),
 			eZOOM.fit2width => sizeClient.Width / m_img.Cols,
 			eZOOM.fit2height => sizeClient.Height / m_img.Rows,
-			_ => 1.0,
+			_ => (double)ui_spinZoom.Value,
 		};
 		if (dScale > 0)
 			m_ctScreenFromImage.m_scale = dScale;
@@ -506,7 +517,7 @@ public partial class xMatView : UserControl
 		m_ctScreenFromImage.m_scale = misc.Clamp(m_ctScreenFromImage.m_scale, dMinZoom, 1_000.0);
 		m_ctScreenFromImage.m_offset += ptAnchor - m_ctScreenFromImage.Trans(ptImage);
 		// Anchor point
-		var eZoom = m_option.eZOOM;// m_eZoom;
+		var eZoom = m_option.eZoom;// m_eZoom;
 		if (eZoom != eZOOM.mouse_wheel_locked)
 			eZoom = eZOOM.free;
 		ui_cmbZoomMode.SelectedIndex = (int)eZoom;
@@ -530,5 +541,172 @@ public partial class xMatView : UserControl
 		InitZoom(eZoom);
 	}
 
+	protected void OnZoomValueChanged(object sender, NumericUpDownValueChangedEventArgs e)
+	{
+		if (ui_spinZoom == null)
+			return;
+
+		if (ui_spinZoom.Value <= 0)
+			return;
+
+		if (m_option.eZoom != eZOOM.free)
+			m_option.eZoom = eZOOM.free;
+		UpdateCT();
+	}
+
+	protected void OnMousePressed(object sender, PointerPressedEventArgs e)
+	{
+		if (m_img == null)
+			return;
+
+		var Point = e.GetCurrentPoint(sender as Control);
+		var ptView = new CV.Point2d(Point.Position.X, Point.Position.Y);
+		if (Point.Properties.IsLeftButtonPressed)
+		{
+			if (m_option.bPanningLock && (m_option.eZoom == eZOOM.fit2window))
+				return;
+			//if (e.Pointer.Captured != null)
+			//	return;
+			//e.Pointer.Capture(sender as Control);
+			m_mouse.ptAnchor = ptView;
+			m_mouse.ptOffset0 = m_ctScreenFromImage.m_offset;
+		}
+		else if (Point.Properties.IsRightButtonPressed)
+		{
+			if (m_mouse.bInSelectionMode)
+			{
+				m_mouse.bInSelectionMode = false;
+				m_mouse.bRectSelected = true;
+				var pt = m_ctScreenFromImage.TransI(ptView);
+				m_mouse.ptSel1.X = misc.Clamp(pt.X, 0, m_img.Cols);
+				m_mouse.ptSel1.Y = misc.Clamp(pt.Y, 0, m_img.Rows);
+			}
+			else
+			{
+				m_mouse.bRectSelected = false;
+				m_mouse.bInSelectionMode = true;
+				var pt = m_ctScreenFromImage.TransI(ptView);
+				m_mouse.ptSel0.X = misc.Clamp(pt.X, 0, m_img.Cols);
+				m_mouse.ptSel0.Y = misc.Clamp(pt.Y, 0, m_img.Rows);
+				m_mouse.ptSel1 = m_mouse.ptSel0;
+			}
+		}
+
+		UpdateCT();
+	}
+
+	protected void OnMouseMoved(object sender, PointerEventArgs e)
+	{
+		var Point = e.GetCurrentPoint(sender as Control);
+		var ptView = new CV.Point2d(Point.Position.X, Point.Position.Y);
+
+		if (m_mouse.ptAnchor is CV.Point2d ptAnchor) {
+			if (!m_option.bPanningLock) {
+				switch (m_option.eZoom) {
+				case eZOOM.one2one: break;
+				case eZOOM.mouse_wheel_locked: break;
+				case eZOOM.free: break;
+				default :
+					m_option.eZoom = eZOOM.free;
+					ui_cmbZoomMode.SelectedIndex = (int)m_option.eZoom;
+					break;
+				}
+			}
+			double dPanningSpeed = m_mouse.bInSelectionMode ? 1.0 : m_option.dPanningSpeed;
+			CV.Point2d ptOffset = (ptView - ptAnchor) * dPanningSpeed;
+			if (m_option.eZoom == eZOOM.fit2width)
+				ptOffset.X = 0;
+			if (m_option.eZoom == eZOOM.fit2height)
+				ptOffset.Y = 0;
+			m_ctScreenFromImage.m_offset = m_mouse.ptOffset0 + ptOffset;
+			UpdateScrollBars();
+		}
+
+		// Selection Mode
+		if (m_mouse.bInSelectionMode) {
+			var pt = m_ctScreenFromImage.TransI(ptView);
+			m_mouse.ptSel1.X = misc.Clamp(pt.X, 0, m_img.Cols);
+			m_mouse.ptSel1.Y = misc.Clamp(pt.Y, 0, m_img.Rows);
+
+			var pt0 = m_ctScreenFromImage.Trans(m_mouse.ptSel0);
+			var pt1 = m_ctScreenFromImage.Trans(m_mouse.ptSel1);
+
+			var r = misc.NormalizeRect(new CV.Rect2d(pt0.X, pt0.Y, pt1.X - pt0.X, pt1.Y - pt0.Y));
+			ui_renderer.SelectedRect = new Rect(r.X, r.Y, r.Width, r.Height);
+		}
+
+		// status
+		{
+			var ptImagef = m_ctScreenFromImage.TransI(ptView);
+			CV.Point ptImage = new((int)ptImagef.X, (int)ptImagef.Y);
+			StringBuilder sb = new();
+
+			// Current Position
+			{
+				// print ptImage.x and ptImage.y with thousand comma separated
+				if (!m_img.Empty())
+					sb.Append($"(w{m_img.Cols, 3} h{m_img.Row, 3}) ");
+				sb.Append($"[x{ptImage.X, 3} y{ptImage.Y, 3}]");
+			}
+
+			// image value
+			{
+				int n = m_img.Channels();
+				if (misc.PtInRect(new CV.Rect(0, 0, m_img.Cols, m_img.Rows), ptImage)) {
+					int depth = m_img.Depth();
+					var buffer = m_img.Ptr(ptImage.Y);
+					CV.Scalar cr = misc.GetMatValue(m_img.Ptr(ptImage.Y), depth, n, ptImage.Y, ptImage.X);
+					sb.Append($" [{cr[0], 3}");
+					for (int i = 1; i < n; i++) {
+						sb.Append($",{cr[i]}");
+					}
+					sb.Append("]");
+				}
+				else {
+					sb.AppendFormat(" [{0, 3}", ' ');
+					for (int i = 1; i < n; i++)
+						sb.AppendFormat(" {0, 3}", ' ');
+					sb.Append("]");
+				}
+			}
+
+			// Selection
+			if (m_mouse.bInSelectionMode || m_mouse.bRectSelected) {
+				var size = m_mouse.ptSel1 - m_mouse.ptSel0;
+				sb.AppendFormat(" (x{0} y{1} w{2} h{3})",
+					(int)m_mouse.ptSel0.X, (int)m_mouse.ptSel0.Y,
+					(int)Math.Abs(size.X), (int)Math.Abs(size.Y));
+			}
+
+			string str = sb.ToString();
+			if (ui_edtInfo.Text != str) {
+				ui_edtInfo.Text = str;
+			}
+		} 
+
+		UpdateCT();
+	}
+
+	protected void OnMouseReleased(object sender, PointerReleasedEventArgs e)
+	{
+		if (m_img == null)
+			return;
+
+		var Point = e.GetCurrentPoint(sender as Control);
+		var ptView = new CV.Point2d(Point.Position.X, Point.Position.Y);
+
+		switch (e.InitialPressMouseButton) {
+			case Avalonia.Input.MouseButton.Left:
+				//if (e.Pointer.Captured != this)
+				//	return;
+				//e.Pointer.Capture(null);
+				m_mouse.ptAnchor = null;
+				break;
+
+			case Avalonia.Input.MouseButton.Right:
+				//ui_renderer.SelectedRect = null;
+				break;
+		}
+	}
 }
 

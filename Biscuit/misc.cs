@@ -2,7 +2,9 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Reflection;
 using System.Text;
+using System.Threading.Channels;
 using System.Threading.Tasks;
 
 using CV = OpenCvSharp;
@@ -24,13 +26,13 @@ namespace Biscuit
 			CV.Rect2d rect_ = rect;
 			if (rect.Width < 0)
 			{
-				rect.X += rect.Width;
-				rect.Width = -rect.Width;
+				rect_.X += rect.Width;
+				rect_.Width = -rect.Width;
 			}
 			if (rect.Height < 0)
 			{
-				rect.Y += rect.Height;
-				rect.Height = -rect.Height;
+				rect_.Y += rect.Height;
+				rect_.Height = -rect.Height;
 			}
 			return rect_;
 		}
@@ -104,5 +106,58 @@ namespace Biscuit
 			return r;
 		}
 
+		public static bool PtInRect(CV.Rect rect, CV.Point pt)
+		{
+			return (pt.X >= rect.Left) && (pt.X < rect.Right) && (pt.Y >= rect.Top) && (pt.Y < rect.Bottom);
+		}
+
+		public static bool PtInRect(CV.Rect2d rect, CV.Point2d pt)
+		{
+			return (pt.X >= rect.Left) && (pt.X < rect.Right) && (pt.Y >= rect.Top) && (pt.Y < rect.Bottom);
+		}
+
+		private static void GetMatValue<T>(nint ptr, int nChannel, int index, ref CV.Scalar v) where T : unmanaged
+		{
+			unsafe
+			{
+				T* p = (T*)ptr;
+				for (int i = 0; i < nChannel; ++i)
+				{
+					v[i] = p[index * nChannel + i] switch
+					{
+						byte b => b,
+						char c => c,
+						ushort u => u,
+						short s => s,
+						int i_ => i_,
+						float f => f,
+						double d => d,
+						_ => 0.0
+					};
+					//v[i] = p[index * nChannel + i];
+				}
+			}
+		}
+
+		public static CV.Scalar GetMatValue(nint ptr, int depth, int channel, int row, int col) {
+			//if ( mat.empty() or (row < 0) or (row >= mat.rows) or (col < 0) or (col >= mat.cols) )
+			//	return;
+
+			CV.Scalar v = new();
+			switch (depth) {
+			case CV.MatType.CV_8U:	GetMatValue<byte>(ptr, channel, col, ref v); break;
+			case CV.MatType.CV_8S:	GetMatValue<char>(ptr, channel, col, ref v); break;
+			case CV.MatType.CV_16U:	GetMatValue<UInt16>(ptr, channel, col, ref v); break;
+			case CV.MatType.CV_16S:	GetMatValue<Int16>(ptr, channel, col, ref v); break;
+			case CV.MatType.CV_32S:	GetMatValue<Int32>(ptr, channel, col, ref v); break;
+			case CV.MatType.CV_32F:	GetMatValue<float>(ptr, channel, col, ref v); break;
+			case CV.MatType.CV_64F:	GetMatValue<double>(ptr, channel, col, ref v); break;
+				//case CV_16F:	GetValue(uint16_t{}); break;
+			}
+
+			return v;
+		}
+
 	}
 }
+ 

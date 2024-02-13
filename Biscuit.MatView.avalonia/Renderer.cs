@@ -12,11 +12,11 @@ using Avalonia.Input;
 using Avalonia.Media;
 using Avalonia.Media.Imaging;	// WriteableBitmap
 using Avalonia.Platform;
-using Microsoft.CodeAnalysis.Text;
+//using Microsoft.CodeAnalysis.Text;
 using OpenCvSharp;
 using CV = OpenCvSharp;
 using Tmds.DBus.Protocol;
-using Microsoft.CodeAnalysis.CSharp.Syntax;
+//using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Microsoft.VisualBasic.FileIO;
 using OpenCvSharp.Detail;
 

@@ -110,8 +110,8 @@ public partial class xMatView : UserControl
 	protected void ReserveDraw()
 	{
 		m_timerDraw.Change(1000 / 60, 1000 / 60);
-		if (m_img == null)
-			return;
+		//if (m_img == null || m_img.Empty())
+		//	return;
 	}
 
 	protected void OnTimerDraw(object? state)
@@ -129,8 +129,6 @@ public partial class xMatView : UserControl
 	protected void InitZoom(eZOOM eZoom)
 	{
 		m_option.eZoom = eZoom;
-		if (m_img == null)
-			return;
 
 		UpdateCT();
 	}
@@ -264,7 +262,7 @@ public partial class xMatView : UserControl
 	{
 		CV.Rect2d rectClient = GetViewRect();
 		CV.Point2d pt0 = m_ctScreenFromImage.Trans(new CV.Point2d(0, 0));
-		CV.Point2d pt1 = m_ctScreenFromImage.Trans(new CV.Point2d(m_img.Cols, m_img.Rows));
+		CV.Point2d pt1 = m_img switch { null => pt0, _ => m_ctScreenFromImage.Trans(new CV.Point2d(m_img.Cols, m_img.Rows)) };
 		CV.Rect2d rectImageScreen = new(pt0.X, pt0.Y, pt1.X - pt0.X, pt1.Y - pt0.Y);
 		rectImageScreen = misc.NormalizeRect(rectImageScreen);
 
@@ -293,7 +291,7 @@ public partial class xMatView : UserControl
 
 	public bool UpdateCT(bool bCenter = false, eZOOM eZoom = eZOOM.none)
 	{
-		if (m_img.Empty())
+		if (m_img is null || m_img.Empty())
 			return false;
 
 		if (eZoom == eZOOM.none)
@@ -305,12 +303,14 @@ public partial class xMatView : UserControl
 		CV.Size2d sizeClient = rectClient.Size;
 
 		// scale
+		int cols = m_img == null ? 1 : m_img.Cols;
+		int rows = m_img == null ? 1 : m_img.Rows;
 		double dScale = eZoom switch
 		{
 			eZOOM.one2one => 1.0,
-			eZOOM.fit2window => Math.Min(sizeClient.Width / m_img.Cols, sizeClient.Height / m_img.Rows),
-			eZOOM.fit2width => sizeClient.Width / m_img.Cols,
-			eZOOM.fit2height => sizeClient.Height / m_img.Rows,
+			eZOOM.fit2window => Math.Min(sizeClient.Width / cols, sizeClient.Height / rows),
+			eZOOM.fit2width => sizeClient.Width / cols,
+			eZOOM.fit2height => sizeClient.Height / rows,
 			_ => (double)ui_spinZoom.Value,
 		};
 		if (dScale > 0)
@@ -320,8 +320,8 @@ public partial class xMatView : UserControl
 		if (bCenter || (eZoom == eZOOM.fit2window) || (eZoom == eZOOM.fit2width) || (eZoom == eZOOM.fit2height))
 		{
 			var ct2 = m_ctScreenFromImage;
-			ct2.m_origin.X = m_img.Cols / 2;
-			ct2.m_origin.Y = m_img.Rows / 2;
+			ct2.m_origin.X = cols / 2;
+			ct2.m_origin.Y = rows / 2;
 			ct2.m_offset.X = rectClient.X + rectClient.Width / 2;
 			ct2.m_offset.Y = rectClient.Y + rectClient.Height / 2;
 
@@ -347,7 +347,7 @@ public partial class xMatView : UserControl
 
 		// panning constraints.
 		CV.Point2d pt0 = m_ctScreenFromImage.Trans(new CV.Point2d(0.0, 0.0));
-		CV.Point2d pt1 = m_ctScreenFromImage.Trans(new CV.Point2d(m_img.Cols, m_img.Rows));
+		CV.Point2d pt1 = m_ctScreenFromImage.Trans(new CV.Point2d(cols, rows));
 		CV.Rect2d rectImageScreen = new CV.Rect2d(pt0.X, pt0.Y, pt1.X - pt0.X, pt1.Y - pt0.Y);
 		misc.NormalizeRect(rectImageScreen);
 		if (m_option.bExtendedPanning)
@@ -377,7 +377,7 @@ public partial class xMatView : UserControl
 			// default panning. make image stays inside the screen
 			if (rectImageScreen.Width <= rectClient.Width)
 			{
-				var pt = m_ctScreenFromImage.Trans(new CV.Point2d(m_img.Cols / 2, 0));
+				var pt = m_ctScreenFromImage.Trans(new CV.Point2d(cols / 2, 0));
 				m_ctScreenFromImage.m_offset.X += rectClient.X + rectClient.Width / 2 - pt.X;
 			}
 			if (rectImageScreen.Width > rectClient.Width)
@@ -389,7 +389,7 @@ public partial class xMatView : UserControl
 			}
 			if (rectImageScreen.Height <= rectClient.Height)
 			{
-				var pt = m_ctScreenFromImage.Trans(new CV.Point2d(0, m_img.Rows / 2));
+				var pt = m_ctScreenFromImage.Trans(new CV.Point2d(0, rows / 2));
 				m_ctScreenFromImage.m_offset.Y += rectClient.Height / 2 - pt.Y;
 			}
 			if (rectImageScreen.Height > rectClient.Height)
@@ -402,7 +402,7 @@ public partial class xMatView : UserControl
 		}
 
 		//pt0 = m_ctScreenFromImage.Trans(new CV.Point2d());
-		//pt1 = m_ctScreenFromImage.Trans(new CV.Point2d(m_img.Cols, m_img.Rows));
+		//pt1 = m_ctScreenFromImage.Trans(new CV.Point2d(cols, rows));
 		if (pt0.X < 0)
 			pt0.X = 0;
 		if (pt0.Y < 0)
@@ -414,7 +414,7 @@ public partial class xMatView : UserControl
 
 		var ptSource0 = m_ctScreenFromImage.TransI(pt0);
 		var ptSource1 = m_ctScreenFromImage.TransI(pt1);
-		var roi = misc.GetSafeROI(new CV.Rect2d(ptSource0.X, ptSource0.Y, ptSource1.X - ptSource0.X, ptSource1.Y - ptSource0.Y), new CV.Size(m_img.Cols, m_img.Rows));
+		var roi = misc.GetSafeROI(new CV.Rect2d(ptSource0.X, ptSource0.Y, ptSource1.X - ptSource0.X, ptSource1.Y - ptSource0.Y), new CV.Size(cols, rows));
 		ui_renderer.m_rectTarget = new CV.Rect2d(pt0.X, pt0.Y, pt1.X - pt0.X, pt1.Y - pt0.Y);
 		ui_renderer.Image = misc.IsRectEmpty(roi) ? null : Image.SubMat(roi);
 
@@ -425,7 +425,7 @@ public partial class xMatView : UserControl
 
 	bool UpdateScrollBars()
 	{
-		if (m_img.Empty())
+		if (m_img == null || m_img.Empty())
 			return false;
 
 		var g = GetScrollGeometry();
@@ -501,7 +501,7 @@ public partial class xMatView : UserControl
 
 	bool SetZoom(double scale, CV.Point2d ptAnchor, bool bCenter)
 	{
-		if (m_img.Empty())
+		if (m_img == null || m_img.Empty())
 			return false;
 		// Backup Image Position
 		CV.Point2d ptImage = m_ctScreenFromImage.TransI(ptAnchor);
@@ -556,7 +556,7 @@ public partial class xMatView : UserControl
 
 	protected void OnMousePressed(object sender, PointerPressedEventArgs e)
 	{
-		if (m_img == null)
+		if (m_img == null || m_img.Empty())
 			return;
 
 		var Point = e.GetCurrentPoint(sender as Control);
@@ -597,6 +597,8 @@ public partial class xMatView : UserControl
 
 	protected void OnMouseMoved(object sender, PointerEventArgs e)
 	{
+		if (m_img == null || m_img.Empty())
+			return;
 		var Point = e.GetCurrentPoint(sender as Control);
 		var ptView = new CV.Point2d(Point.Position.X, Point.Position.Y);
 
@@ -644,13 +646,13 @@ public partial class xMatView : UserControl
 			// Current Position
 			{
 				// print ptImage.x and ptImage.y with thousand comma separated
-				if (!m_img.Empty())
-					sb.Append($"(w{m_img.Cols, 3} h{m_img.Row, 3}) ");
+				if (m_img != null && !m_img.Empty())
+					sb.Append($"(w{m_img.Cols, 3} h{m_img.Rows, 3}) ");
 				sb.Append($"[x{ptImage.X, 3} y{ptImage.Y, 3}]");
 			}
 
 			// image value
-			{
+			if (m_img != null && !m_img.Empty()) {
 				int n = m_img.Channels();
 				if (misc.PtInRect(new CV.Rect(0, 0, m_img.Cols, m_img.Rows), ptImage)) {
 					int depth = m_img.Depth();
@@ -689,7 +691,7 @@ public partial class xMatView : UserControl
 
 	protected void OnMouseReleased(object sender, PointerReleasedEventArgs e)
 	{
-		if (m_img == null)
+		if (m_img == null || m_img.Empty())
 			return;
 
 		var Point = e.GetCurrentPoint(sender as Control);

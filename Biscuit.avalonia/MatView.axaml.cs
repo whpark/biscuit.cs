@@ -13,10 +13,10 @@ using Avalonia.Remote.Protocol.Input;
 using Avalonia.Rendering;
 using Avalonia.Threading;
 using ReactiveUI;
-using static Biscuit.MatView.avalonia.xMatView;
+using static Biscuit. avalonia.xMatView;
 using CV = OpenCvSharp;
 
-namespace Biscuit.MatView.avalonia;
+namespace Biscuit.avalonia;
 
 public partial class xMatView : UserControl
 {

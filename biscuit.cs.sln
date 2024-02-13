@@ -5,9 +5,9 @@ VisualStudioVersion = 17.9.34518.117
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Biscuit", "Biscuit\Biscuit.csproj", "{43E8FE5E-8D14-4AE8-9658-0DEDE637B50E}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Biscuit.MatView.avalonia", "Biscuit.MatView.avalonia\Biscuit.MatView.avalonia.csproj", "{01D6BF84-F423-4627-B5C0-D6729746CC0D}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Biscuit.avalonia", "Biscuit.avalonia\Biscuit.avalonia.csproj", "{01D6BF84-F423-4627-B5C0-D6729746CC0D}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Tester.avalonia", "Tester.avalonia\Tester.avalonia.csproj", "{6346FB3A-1339-48DB-8DFE-17E4E0B0F07C}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Tester.avalonia", "Tester.avalonia\Tester.avalonia.csproj", "{6346FB3A-1339-48DB-8DFE-17E4E0B0F07C}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

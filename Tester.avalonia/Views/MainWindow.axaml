@@ -1,7 +1,7 @@
 <Window xmlns="https://github.com/avaloniaui"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:vm="using:Tester.avalonia.ViewModels"
-		xmlns:bsc="clr-namespace:Biscuit.MatView.avalonia;assembly=Biscuit.MatView.avalonia"
+		xmlns:bsc="clr-namespace:Biscuit.avalonia;assembly=Biscuit.avalonia"
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
@@ -16,6 +16,8 @@
         <vm:MainWindowViewModel/>
     </Design.DataContext>
 
-    <bsc:xMatView Name="ui_view"/>
+	<bsc:xGroupBox Header="Biscuit xGroupBox" Margin="1">
+        <bsc:xMatView Name="ui_view"/>
+	</bsc:xGroupBox>
 
 </Window>

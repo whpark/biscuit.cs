@@ -24,7 +24,7 @@ using OpenCvSharp.Detail;
 //using Avalonia.VisualTree;
 //using Avalonia.Utilities;
 
-namespace Biscuit.MatView.avalonia;
+namespace Biscuit.avalonia;
 
 public class xRenderer : Control
 {

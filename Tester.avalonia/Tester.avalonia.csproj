@@ -26,6 +26,7 @@
 
 
   <ItemGroup>
-    <ProjectReference Include="..\Biscuit.MatView.avalonia\Biscuit.MatView.avalonia.csproj" />
+    <ProjectReference Include="..\Biscuit.avalonia\Biscuit.avalonia.csproj" />
+    <ProjectReference Include="..\Biscuit\Biscuit.csproj" />
   </ItemGroup>
 </Project>

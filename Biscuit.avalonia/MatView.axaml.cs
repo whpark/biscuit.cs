@@ -13,7 +13,6 @@ using Avalonia.Remote.Protocol.Input;
 using Avalonia.Rendering;
 using Avalonia.Threading;
 using ReactiveUI;
-using static Biscuit. avalonia.xMatView;
 using CV = OpenCvSharp;
 
 namespace Biscuit.avalonia;

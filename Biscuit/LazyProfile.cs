@@ -1,400 +1,297 @@
-﻿using System;
+﻿using OpenCvSharp.Internal;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
+using System.Xml.Linq;
 
 namespace Biscuit
 {
+	using map_t = System.Collections.Generic.Dictionary<string, xLazyProfile>;
 
 	public class xLazyProfile {
-		private static bool bCASE_SENSITIVE = false;
-		private static bool bTREAT_BOOL_AS_INT = false;
-		private static bool bSTRING_BE_QUOTED = false;
-
-		Dictionary<string, xLazyProfile> m_section = new();
+		private static bool bIGNORE_CASE = true;
+		private static bool bTREAT_BOOL_AS_INT = true;
+		private static bool bSTRING_BE_QUOTED = true;
 
 		//regex for section name
 		// key : any trimmed(whitespace) chars quoted by bracket "[]", ex) [ HeadDriver1:1 ]
 		// trailing : any string after section name
-		protected static Regex s_reSection = new Regex("\\s*\\[\\s*([^\\]]*[^\\]\\s]+)\\s*\\](.*)", RegexOptions.Compiled);
+		protected static readonly Regex s_reSection = new Regex("\\s*\\[\\s*([^\\]]*[^\\]\\s]+)\\s*\\](.*)", RegexOptions.Compiled);
 
 		// regex for item
 		// key : any string except '=', including space
 		// value : 1. any string except ';'.
 		//         2. if value starts with '"', it can contain any character except '"'.
 		// comment : any string after ';', including space.
-		protected static Regex s_reItem = new Regex("\\s*([\\w\\s]*\\w+)\\s*(=)\\s*(\"(?:[^\\\"]|\\.)*\"|[^;\\n]*)\\s*[^;]*(;.*)?", RegexOptions.Compiled);
+		protected static readonly Regex s_reItem = new Regex("\\s*([\\w\\s]*\\w+)\\s*(=)\\s*(\"(?:[^\\\"]|\\.)*\"|[^;\\n]*)\\s*[^;]*(;.*)?", RegexOptions.Compiled);
 
-		public struct TLazyProfileValue {
-			xLazyProfile rThis;
-			string key;
+		private map_t m_sections;	// child sections
+		private List<string> m_items;
+		private string m_line;				// anything after section name
 
-			TLazyProfileValue& operator = (tvalue&& v) {
-				rThis.SetItemValue<tvalue, false>(key, std::forward<tvalue>(v));
-				return *this;
-			}
-		};
-	protected:
-		//string_t m_key;
-		map_t m_sections;	// child sections
-		std::vector<string_t> m_items;
-		string_t m_line;	// anything after section name
-
-	//protected:
-	//	constexpr static inline int posEQDefault = 25;
-	//	constexpr static inline int posCommentDefault = 80;
-	//	mutable int m_posEQ {posEQDefault};
-	//	mutable int m_posComment {posCommentDefault};
-
-	public:
-		TLazyProfile() = default;
-		TLazyProfile(TLazyProfile const&) = default;
-		TLazyProfile(TLazyProfile&&) = default;
-		TLazyProfile& operator=(TLazyProfile const&) = default;
-		TLazyProfile& operator=(TLazyProfile&&) = default;
-
-		bool operator == (this_t const& ) const = default;
-		bool operator != (this_t const& ) const = default;
-
-		// section
-		TLazyProfile& operator[](string_view_t key) {
-			return m_sections[key];
+		public xLazyProfile()
+		{
 		}
+		public xLazyProfile(xLazyProfile B)
+		{
+			m_sections = new map_t(B.m_sections);
+			m_items = new List<string>(B.m_items);
+			m_line = new string(B.m_line);
+		}
+
+		bool Equals(xLazyProfile B)
+		{
+
+			return m_sections == B.m_sections
+				&& m_items.SequenceEqual(B.m_items)
+				&& m_line == B.m_line;
+		}
+
 		// section
-		TLazyProfile const& operator[](string_view_t key) const {
-			return m_sections[key];
+		public xLazyProfile this[string key] => m_sections[key];
+
+		public string? GetItemValueRaw(string key)
+		{
+			foreach (var item in m_items)
+			{
+				var match = s_reItem.Match(item);
+				if (!match.Success)
+					continue;
+				// whole, key, '=', value, comments
+				if (string.Compare(match.Groups[1].Value, key, bIGNORE_CASE) == 0)
+					return match.Groups[3].Value;
+			}
+			return null;
 		}
 
 		// getter
-		template < typename tvalue >
-		auto operator()(string_view_t key, tvalue&& vDefault = tvalue{}) const {
-			return GetItemValue(key, std::forward<tvalue>(vDefault));
-		}
-		// getter
-		string_view_t operator()(string_view_t key) const {
-			return GetItemValueRaw(key);
-		}
-		// setter
-		auto operator()(string_view_t key) {
-			TLazyProfileValue<false> valueProxy{*this, key};
-			return valueProxy;
-		}
+		public T GetItemValue<T>(string key, T vDefault) where T : unmanaged
+		{
+			if (GetItemValueRaw(key) is string sv)
+			{
+				sv = sv.Trim();
+				T t = vDefault;
+				if (t is bool && bTREAT_BOOL_AS_INT)
+				{
+					if (int.TryParse(sv, out int v))
+						return (T)(object)(v != 0);
+					else if (bool.TryParse(sv, out bool b))
+						return (T)(object)b;
+					else
+						return vDefault;
+				}
 
-		void Clear() {
-			m_sections.clear();
-			m_items.clear();
-			m_line.clear();
-		}
-
-		section_t& GetSection(string_view_t key) { return m_sections[key]; }
-		section_t const& GetSection(string_view_t key) const {
-			if (auto iter = m_sections.find(key); iter != m_sections.end())
-				return iter->second;
-			static section_t const dummy;
-			return dummy;
-		}
-
-		auto& GetSections() { return m_sections; }
-		auto const& GetSections() const { return m_sections; }
-
-		auto& GetRawItems() { return m_items; }
-		auto const& GetRawItems() const { return m_items; }
-
-		auto GetItemsView() const {
-			struct sItem { string_view_t key, value; };
-			std::vector<sItem> items;
-			items.reserve(m_items.size());
-			for (auto const& item : m_items) {
-				auto [whole, key1, eq1, value1, comment1] = s_reItem(item);
-				if (!whole)
-					continue;
-				string_view_t key{key1.begin(), key1.end()};
-				string_view_t value{value1.begin(), value1.end()};
-				key = gtl::TrimView(key);
-				value = gtl::TrimView(value);
-				if constexpr (bStringBeQuoted) { DeQuote(value); }
-				items.emplace_back(key, value);
+				return t switch
+				{
+					int => (T)(object)int.Parse(sv),
+					uint => (T)(object)uint.Parse(sv),
+					float => (T)(object)float.Parse(sv),
+					double => (T)(object)double.Parse(sv),
+					//string => sv,
+					_ => vDefault,
+				};
+			} else
+			{
+				return vDefault;
 			}
-			return items;
+		}
+		public string GetItemValue(string key, string vDefault)
+		{
+			if (GetItemValueRaw(key) is string sv) { return sv; }
+			else { return vDefault; }
 		}
 
-		string_view_t GetItemValueRaw(string_view_t key) const {
-			for (auto const& item : m_items) {
-				auto [whole, key1, eq1, value1, comment1] = s_reItem(item);
-				if (!whole)
-					continue;
-				if (sCompareString{}(string_view_t{key1.begin(), key1.end()}, key))
-					return string_view_t{value1.begin(), value1.end()};
-				//return {};
-			}
-			return {};
-		}
-
-		void SetItemValueRaw(string_view_t key, string_view_t value, string_view_t comment={}/* comment starting with ';'*/) {
+		public void SetItemValueRaw(string key, string value, string? comment = null/* comment starting with ';'*/) {
 			// if comment does not start with ';', add one.
-			string_t cmt;
-			if (!comment.empty() and !comment.starts_with(';')) {
-				cmt.reserve(comment.size() + 1);
-				cmt = ';';
-				cmt += comment;
-				comment = cmt;
+			if (comment != null && comment.StartsWith(';')) {
+				comment = ";" + comment;
 			}
 
-			int posEQ{-1};
-			int posComment{-1};
-			for (auto& item : m_items) {
-				auto [whole, key1, eq1, value1, comment1] = s_reItem(item);
-				if (!whole)
+			// preserve position of '=' and ';'
+			int posEQ = -1;
+			int posComment = -1;
+			// find the item
+			for (int i = 0; i < m_items.Count; i++) {
+				var item = m_items[i];
+				var match = s_reItem.Match(item);
+				if (!match.Success)
 					continue;
-				posEQ = std::max(posEQ, (int)(eq1.begin() - whole.begin()));
-				posComment = std::max(posComment, comment1 ? (int)(comment1.begin() - whole.begin()) : 0);
-				if (!sCompareString{}(string_view_t{key1}, key))
+				// whole, key, '=', value, comment
+				posEQ = Math.Max(posEQ, match.Groups[2].Index);
+				posComment = Math.Max(posComment, match.Groups[4].Index);
+
+				// if key matches
+				if (string.Compare(match.Groups[1].Value, key, bIGNORE_CASE) != 0)
 					continue;
-				if (comment.empty() and comment1)
-					comment = comment1;
+				if (comment == null && match.Groups[4].Length > 0)
+					comment = match.Groups[4].Value;
 				//int starting = key1.begin() - whole.begin();
-				auto str = FormatToTString<tchar, "{}{:<{}}{}">(
-					string_view_t(whole.begin(), value1.begin()), string_view_t(value),
-					comment.empty() ? value.size()
-						: ( comment1 ? (comment1.begin()-value1.begin()) : std::max(0, (int)(posComment - (value1.begin()-whole.begin()))) ),
-					comment);
-				item = std::move(str);
+				var mWhole = match.Groups[0];
+				var mValue = match.Groups[3];
+				var mComment = match.Groups[4];
+
+				m_items[i] = $"{mWhole.Value[0..mValue.Index]}{value.PadRight(mComment.Index - mValue.Index)}{comment}";
 				return;
 			}
-			auto str = FormatToTString<tchar, "{:{}}= {}">(
-				string_view_t(key), std::max((int)key.size(), (int)posEQ),
-				string_view_t(value));
-			if (!comment.empty()) {
-				str += FormatToTString<tchar, "{:{}}{}">(
-					tchar(';'), std::max(0, posComment - (int)str.size()),
-					comment);
+
+			// if not found, add new item
+			var str = $"{key.PadRight(Math.Max(posEQ, key.Length))}= {value}";
+
+			if (comment is not null) {
+				str += $"{comment.PadRight(Math.Max(0, posComment - str.Length))}";
 			}
-			if (m_items.empty()) {
-				m_items.push_back(std::move(str));
+			if (m_items.Count == 0) {
+				m_items.Add(str);
 			}
 			else {
-				// let empty lines behinde.
-				for (auto iter = m_items.rbegin(); iter != m_items.rend(); iter++) {
-					auto const& cur = *iter;
-					if (gtl::TrimView<tchar>(cur).empty())
+				// let empty lines behind.
+				for (int i = m_items.Count-1; i >= 0; i--) {
+					var cur = m_items[i];
+					if (cur.Trim() == "")
 						continue;
 
-					m_items.insert(m_items.begin() + std::distance(iter, m_items.rend()), std::move(str));
+					m_items.Insert(i+1, str);
 					break;
 				}
 			}
 		}
 
-		void SetItemComment(string_view_t key, string_view_t comment) {
-			string_t value = GetItemValueRaw(key);
+		public void SetItemValue(string key, string value, bool bDO_NOT_QUOTE_STRING = false)
+		{
+			if (bSTRING_BE_QUOTED && !bDO_NOT_QUOTE_STRING) {
+				SetItemValueRaw(key, $"\"{value}\"");
+			} else {
+				SetItemValueRaw(key, value);
+			}
+		}
+
+		public void SetItemValue<T>(string key, T value) where T : unmanaged
+		{
+			if (value is bool v && bTREAT_BOOL_AS_INT)
+			{
+				SetItemValueRaw(key, v ? "1" : "0");
+			}
+			else
+            {
+				SetItemValueRaw(key, value.ToString());
+            }
+		}
+
+		public void Clear() {
+			m_sections.Clear();
+			m_items.Clear();
+			m_line = "";
+		}
+		public xLazyProfile GetSection(string key) => m_sections[key];
+
+		public map_t GetSections() => m_sections;
+
+		public List<string> GetRawItems() => m_items;
+
+		public void SetItemComment(string key, string comment) {
+			string value = GetItemValueRaw(key);
+			if (value is null)
+				value = "";
 			SetItemValueRaw(key, value, comment);
 		}
 
-		auto HasItem(string_view_t key) const {
-			auto sv = GetItemValueRaw(key);
-			sv = gtl::TrimView(sv);
-			return !sv.empty();
+		public bool HasItem(string key) {
+			var sv = GetItemValueRaw(key);
+			if (sv is null)
+				return false;
+			sv = sv.Trim();
+			return sv != "";
 		}
 
-		auto HasSection(string_view_t key) const {
-			return m_sections.find(key) != m_sections.end();
-		}
-
-		/// @brief Get Item Value
-		template < typename tvalue >
-		auto GetItemValue(string_view_t key, tvalue&& vDefault = tvalue{}) const -> tvalue {
-			auto sv = GetItemValueRaw(key);
-			if (sv.empty())
-				return vDefault;
-			sv = gtl::TrimView(sv);
-			if constexpr (std::is_same_v<tvalue, bool>) {
-				if (std::isdigit(sv[0]))
-					return (gtl::tsztod(sv) == 0.0) ? false : true;
-				return gtl::tsznicmp(sv, string_view_t{gtl::TStringLiteral<char_t, "true">().value}, 4) == 0;
-			}
-			else if constexpr (std::is_integral_v<tvalue>) {
-				return gtl::tsztoi<tvalue>(sv);
-			}
-			else if constexpr (std::is_floating_point_v<tvalue>) {
-				return gtl::tsztod<tvalue>(sv);
-			}
-			else if constexpr (std::is_same_v<tvalue, string_view_t>) {
-				if constexpr (bStringBeQuoted) { DeQuote(sv); }
-				return sv;
-			}
-			else if constexpr (std::is_convertible_v<tvalue, string_view_t>) {
-				if constexpr (bStringBeQuoted) { DeQuote(sv); }
-				return tvalue{sv};
-			}
-			else {
-				static_assert(gtlc::dependent_false_v<tvalue>);
-			}
-			return {};
-		}
-
-		/// @brief Set Item Value
-		template < typename tvalue, bool bDO_NOT_QUOTE_STRING = false >
-		void SetItemValue(string_view_t key, tvalue const& value, string_view_t comment = {}) {
-			if constexpr (bTreatBoolAsInt and std::is_same_v<std::remove_cvref_t<tvalue>, bool>) {
-				SetItemValue(key, value ? 1 : 0, comment);
-			}
-			else if constexpr (std::is_convertible_v<tvalue, string_view_t>) {
-				if constexpr (bStringBeQuoted and !bDO_NOT_QUOTE_STRING) {
-					SetItemValueRaw(key, Quote(value), comment);
-				}
-				else {
-					SetItemValueRaw(key, value, comment);
-				}
-			}
-			else {
-				SetItemValueRaw(key, fmt::format(GetDefaultFormatString<tchar>(), value), comment);
-			}
+		public bool HasSection(string key) {
+			return m_sections.ContainsKey(key);
 		}
 
 		/// @brief Sync
-		template < typename tvalue, bool bDO_NOT_QUOTE_STRING = false >
-		void SyncItemValue(bool bToProfile, string_view_t key, tvalue& value) {
+		public void SyncItemValue<T>(bool bToProfile, string key, ref T value) where T : unmanaged {
 			if (bToProfile) {
-				SetItemValue<tvalue, bDO_NOT_QUOTE_STRING>(key, value);
+				SetItemValue(key, value);
 			} else {
-				//if (HasItemValue(key))
 				value = GetItemValue(key, value);
 			}
 		}
-		template < bool bToProfile, typename tvalue, bool bDO_NOT_QUOTE_STRING = false >
-		void SyncItemValue(string_view_t key, tvalue& value) {
-			if constexpr (bToProfile) {
-				SetItemValue<tvalue, bDO_NOT_QUOTE_STRING>(key, value);
-			} else {
-				//if (HasItemValue(key))
-				value = GetItemValue(key, std::forward<tvalue>(value));
+
+		public delegate bool FuncIsItemDeprecated(string key, string value);
+		public void DeleteItemsIf(FuncIsItemDeprecated funcIsItemDeprecated) {
+			for (int i = 0; i < m_items.Count; i++)
+			{
+				var item = m_items[i];
+				var match = s_reItem.Match(item);
+				if (!match.Success)
+					continue;
+				// whole, key, '=', value, comment
+				if (funcIsItemDeprecated(match.Groups[1].Value, match.Groups[3].Value))
+					m_items.RemoveAt(i--);
+			}
+		}
+		public delegate bool FuncIsSectionDeprecated(string key, xLazyProfile section);
+		public void DeleteSectionsIf(FuncIsSectionDeprecated funcIsSectionDeprecated) {
+			for (int i = 0; i < m_sections.Count; i++)
+			{
+				var item = m_sections.ElementAt(i);
+				if (funcIsSectionDeprecated(item.Key, item.Value))
+				{
+					m_sections.Remove(item.Key);
+				}
 			}
 		}
 
-		void DeleteItemsIf(std::function<bool(string_view_t /*key*/, string_view_t /*value*/)> funcIsItemDeprecated) {
-			auto Check = [&](auto const& item) {
-				auto [whole, key1, eq1, value1, comment1] = s_reItem(item);
-				if (!whole)
-					return false;
-				auto key = gtl::TrimView(string_view_t{key1.begin(), key1.end()});
-				auto value = gtl::TrimView(string_view_t{value1.begin(), value1.end()});
-				return funcIsItemDeprecated(key, value);
-			};
-			auto iter = std::remove_if(m_items.begin(), m_items.end(), Check);
-			m_items.erase(iter, m_items.end());
-		}
-		void DeleteSectionsIf(std::function<bool(string_view_t /*key*/, section_t const& /*section*/)> funcIsSectionDeprecated) {
-			auto Check = [&](auto & v) -> bool {
-				auto const& [key, section] = v;
-				return funcIsSectionDeprecated(key, section);
-			};
-			auto iter = std::remove_if(m_sections.begin(), m_sections.end(), Check);
-			m_sections.erase(iter, m_sections.end());
-		}
-
-	public:
-		bool Load(std::filesystem::path const& path) {
-			std::ifstream stream(path, std::ios::binary);
-			return Load(stream);
-		}
-		bool Save(std::filesystem::path const& path, bool bWriteBOM = !std::is_same_v<tchar, char>) const {
-			std::ofstream stream(path, std::ios::binary);
-			return Save(stream, bWriteBOM);
-		}
-
-		bool Load(std::istream& stream) try {
+		public bool Load(string path) {
 			Clear();
-			m_sections.base().emplace_back();
-			TArchive<std::istream> ar(stream);
-			ar.ReadCodepageBOM();
+			m_sections.Add("", new xLazyProfile());
 
-			section_t* section = &m_sections.front().second;
-			while (auto rstr = ar.ReadLine<tchar>()) {
-				string_t& str = *rstr;
-
-				// section name
-				if (auto [whole, key1, trailing1] = s_reSection.match(str); whole) {
-					string_t key{key1.begin(), key1.end()};
-					m_sections.base().emplace_back(std::pair{key, section_t{}});
-					section = &m_sections.base().back().second;
-					section->m_line = std::move(str);
+			string allText = File.ReadAllText(path);
+			var section = m_sections.ElementAt(0).Value;
+			foreach (var line in allText.Split('\n'))
+			{
+				string str = line.Trim();
+				if (str.Length == 0)
 					continue;
+				if (s_reSection.Match(str).Success)
+				{
+					string key = s_reSection.Match(str).Groups[1].Value;
+					section = new xLazyProfile();
+					m_sections.Add(key, section);
+					m_sections[key].m_line = str;
 				}
-
-				// item : just put it into current section
-				//if (auto [whole, key1, eq1, value1, comment1] = s_reItem(str); whole) {
-				//}
-				section->m_items.push_back(std::move(str));
+				else
+				{
+					section.m_items.Add(str);
+				}
 			}
 
 			return true;
 		}
-		catch (...) {
-			return false;
-		}
 
-		bool Save(std::ostream& stream, bool bWriteBOM = !std::is_same_v<tchar, char>) const try {
-			TArchive ar(stream);
-			if (bWriteBOM) {
-				eCODEPAGE eCodepage = eCODEPAGE_DEFAULT<tchar>;
-				if (eCodepage == eCODEPAGE::DEFAULT)
-					eCodepage = eCODEPAGE::UTF8;
-				ar.WriteCodepageBOM(eCodepage);
-			}
-			for (auto& [key, section] : m_sections) {
-				if (!key.empty()) {
-					if (section.m_line.empty()) {
-						string_t str = FormatToTString<tchar, "[{}]">(key);
-						ar.WriteLine(GetDefaultFormatString<tchar>(), str);
+		public bool Save(string path, bool bWriteBOM = true) {
+			List<string> contents = new ();
+			foreach (var sectionItem in m_sections) {
+				var key = sectionItem.Key;
+				var section = sectionItem.Value;
+
+				if (key == null || key == "") {
+					if (section.m_line == null || section.m_line == "") {
+						var str = $"[{key}]";
+						contents.Add(str);
 					}
 					else {
-						ar.WriteLine(GetDefaultFormatString<tchar>(), section.m_line);
+						contents.Add(section.m_line);
 					}
 				}
-				for (auto& item : section.m_items) {
-					ar.WriteLine(GetDefaultFormatString<tchar>(), item);
+				foreach (var item in section.m_items) {
+					contents.Add(item);
 				}
 			}
+			File.WriteAllLines(path, contents.ToArray());
 			return true;
-		}
-		catch (...) {
-			return false;
-		}
-
-	public:
-		string_t Quote(string_view_t sv) const {
-			std::string str;
-			if (sv.empty())
-				return str;
-			//if (auto n = std::ranges::count(sv, '"')) {
-			//	str.reserve(sv.size() + n + 2);
-			//	str = '"';
-			//	for (auto c : sv) {
-			//		if (c == '"')
-			//			str += '\\';
-			//		str += c;
-			//	}
-			//	str += '"';
-			//} else
-			{
-				str.reserve(sv.size()+2);
-				str = '"';
-				str += sv;
-				str += '"';
-			}
-			return str;
-		}
-		template < typename tstring >
-			requires std::is_convertible_v<tstring, string_view_t>
-				or std::is_convertible_v<tstring, string_t>
-		bool DeQuote(tstring& str) const {
-			if (str.size() >= 2 and str.front() == '"' and str.back() == '"') {
-				str = str.substr(1, str.size() - 2);
-				return true;
-			}
-			return false;
 		}
 
 	}

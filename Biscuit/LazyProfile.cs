@@ -34,6 +34,9 @@ namespace Biscuit
 
 		public xLazyProfile()
 		{
+			m_sections = new ();
+			m_items = new ();
+			m_line = "";
 		}
 		public xLazyProfile(xLazyProfile B)
 		{
@@ -252,13 +255,17 @@ namespace Biscuit
 			var section = m_sections.ElementAt(0).Value;
 			foreach (var line in allText.Split('\n'))
 			{
-				string str = line.Trim();
-				if (str.Length == 0)
-					continue;
-				if (s_reSection.Match(str).Success)
+				//string str = line.Trim();
+				//if (str.Length == 0)
+				//	continue;
+				var str = line.TrimEnd();
+				var m = s_reSection.Match(str);
+				if (m.Success && m.Groups[0].Index == 0)
 				{
-					string key = s_reSection.Match(str).Groups[1].Value;
-					section = new xLazyProfile();
+					string key = m.Groups[1].Value;
+					if (key == "")
+						continue;
+                    section = new xLazyProfile();
 					m_sections.Add(key, section);
 					m_sections[key].m_line = str;
 				}
@@ -277,7 +284,7 @@ namespace Biscuit
 				var key = sectionItem.Key;
 				var section = sectionItem.Value;
 
-				if (key == null || key == "") {
+				if (key is not null && key != "") {
 					if (section.m_line == null || section.m_line == "") {
 						var str = $"[{key}]";
 						contents.Add(str);

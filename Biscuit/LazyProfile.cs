@@ -54,7 +54,21 @@ namespace Biscuit
 		}
 
 		// section
-		public xLazyProfile this[string key] => m_sections[key];
+		public xLazyProfile this[string key]
+		{
+			get
+			{
+				if (m_sections.ContainsKey(key))
+					return m_sections[key];
+				else
+					return m_sections[key] = new xLazyProfile();
+			}
+			set
+			{
+				m_sections[key] = value;
+			}
+		}
+		//=> m_sections[key];
 
 		public string? GetItemValueRaw(string key)
 		{

@@ -20,11 +20,6 @@ namespace Tester.avalonia.Views
 			}
 
 			ui_view.Image = img;
-
-			Biscuit.xLazyProfile profile = new ();
-			profile.Load("z:\\Downloads\\test.cfg");
-
-			profile.Save("z:\\Downloads\\test2.cfg");
 		}
 	}
 }

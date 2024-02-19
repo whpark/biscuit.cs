@@ -9,6 +9,8 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Biscuit.avalonia", "Biscuit
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Tester.avalonia", "Tester.avalonia\Tester.avalonia.csproj", "{6346FB3A-1339-48DB-8DFE-17E4E0B0F07C}"
 EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Tester", "Tester\Tester.csproj", "{2E7FC65C-74A0-49D3-A9C0-8800A9E792C2}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -27,6 +29,10 @@ Global
 		{6346FB3A-1339-48DB-8DFE-17E4E0B0F07C}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{6346FB3A-1339-48DB-8DFE-17E4E0B0F07C}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{6346FB3A-1339-48DB-8DFE-17E4E0B0F07C}.Release|Any CPU.Build.0 = Release|Any CPU
+		{2E7FC65C-74A0-49D3-A9C0-8800A9E792C2}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{2E7FC65C-74A0-49D3-A9C0-8800A9E792C2}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{2E7FC65C-74A0-49D3-A9C0-8800A9E792C2}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{2E7FC65C-74A0-49D3-A9C0-8800A9E792C2}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

@@ -272,7 +272,7 @@ namespace Biscuit
 				//string str = line.Trim();
 				//if (str.Length == 0)
 				//	continue;
-				var str = line.TrimEnd();
+				var str = line.TrimEnd('\r');
 				var m = s_reSection.Match(str);
 				if (m.Success && m.Groups[0].Index == 0)
 				{

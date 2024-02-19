@@ -23,6 +23,7 @@ public class Program
 		xLazyProfile profile = new();
 		profile.Load("Test.cfg");
 
-		profile.GetSection()
+		profile["Test"].SetItemValue("LogSetup", false);
+		profile.Save("Test2.cfg");
 	}
 }

@@ -1,11 +1,8 @@
-﻿using OpenCvSharp.Internal;
-using System;
+﻿using System;
+using System.IO;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text;
 using System.Text.RegularExpressions;
-using System.Threading.Tasks;
-using System.Xml.Linq;
 
 namespace Biscuit
 {
@@ -264,6 +261,8 @@ namespace Biscuit
 		public bool Load(string path) {
 			Clear();
 			m_sections.Add("", new xLazyProfile());
+			if (!File.Exists(path))
+				return false;
 
 			string allText = File.ReadAllText(path);
 			var section = m_sections.ElementAt(0).Value;

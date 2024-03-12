@@ -1,11 +1,18 @@
-﻿using System;
+﻿//=============================================================================
+// 
+// LazyProfile.cs
+//      .ini file parser. lazy iteration.
+// PWH. C++ ==> C#...
+//
+//
+
+using System;
 using System.IO;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text.RegularExpressions;
 
-namespace Biscuit
-{
+namespace Biscuit {
 	using map_t = System.Collections.Generic.Dictionary<string, xLazyProfile>;
 
 	public class xLazyProfile {
@@ -25,25 +32,22 @@ namespace Biscuit
 		// comment : any string after ';', including space.
 		protected static readonly Regex s_reItem = new Regex("\\s*([\\w\\s]*\\w+)\\s*(=)\\s*(\"(?:[^\\\"]|\\.)*\"|[^;\\n]*)\\s*[^;]*(;.*)?", RegexOptions.Compiled);
 
-		private map_t m_sections;	// child sections
+		private map_t m_sections;   // child sections
 		private List<string> m_items;
-		private string m_line;				// anything after section name
+		private string m_line;              // anything after section name
 
-		public xLazyProfile()
-		{
-			m_sections = new ();
-			m_items = new ();
+		public xLazyProfile() {
+			m_sections = new();
+			m_items = new();
 			m_line = "";
 		}
-		public xLazyProfile(xLazyProfile B)
-		{
+		public xLazyProfile(xLazyProfile B) {
 			m_sections = new map_t(B.m_sections);
 			m_items = new List<string>(B.m_items);
 			m_line = new string(B.m_line);
 		}
 
-		bool Equals(xLazyProfile B)
-		{
+		bool Equals(xLazyProfile B) {
 
 			return m_sections == B.m_sections
 				&& m_items.SequenceEqual(B.m_items)
@@ -51,26 +55,21 @@ namespace Biscuit
 		}
 
 		// section
-		public xLazyProfile this[string key]
-		{
-			get
-			{
+		public xLazyProfile this[string key] {
+			get {
 				if (m_sections.ContainsKey(key))
 					return m_sections[key];
 				else
 					return m_sections[key] = new xLazyProfile();
 			}
-			set
-			{
+			set {
 				m_sections[key] = value;
 			}
 		}
 		//=> m_sections[key];
 
-		public string? GetItemValueRaw(string key)
-		{
-			foreach (var item in m_items)
-			{
+		public string? GetItemValueRaw(string key) {
+			foreach (var item in m_items) {
 				var match = s_reItem.Match(item);
 				if (!match.Success)
 					continue;
@@ -82,14 +81,11 @@ namespace Biscuit
 		}
 
 		// getter
-		public T GetItemValue<T>(string key, T vDefault) where T : unmanaged
-		{
-			if (GetItemValueRaw(key) is string sv)
-			{
+		public T GetItemValue<T>(string key, T vDefault) where T : unmanaged {
+			if (GetItemValueRaw(key) is string sv) {
 				sv = sv.Trim();
 				T t = vDefault;
-				if (t is bool && bTREAT_BOOL_AS_INT)
-				{
+				if (t is bool && bTREAT_BOOL_AS_INT) {
 					if (int.TryParse(sv, out int v))
 						return (T)(object)(v != 0);
 					else if (bool.TryParse(sv, out bool b))
@@ -98,8 +94,7 @@ namespace Biscuit
 						return vDefault;
 				}
 
-				return t switch
-				{
+				return t switch {
 					int => (T)(object)int.Parse(sv),
 					uint => (T)(object)uint.Parse(sv),
 					float => (T)(object)float.Parse(sv),
@@ -107,13 +102,12 @@ namespace Biscuit
 					//string => sv,
 					_ => vDefault,
 				};
-			} else
-			{
+			}
+			else {
 				return vDefault;
 			}
 		}
-		public string GetItemValue(string key, string vDefault)
-		{
+		public string GetItemValue(string key, string vDefault) {
 			if (GetItemValueRaw(key) is string sv) { return sv; }
 			else { return vDefault; }
 		}
@@ -173,25 +167,22 @@ namespace Biscuit
 			}
 		}
 
-		public void SetItemValue(string key, string value, bool bDO_NOT_QUOTE_STRING = false)
-		{
+		public void SetItemValue(string key, string value, bool bDO_NOT_QUOTE_STRING = false) {
 			if (bSTRING_BE_QUOTED && !bDO_NOT_QUOTE_STRING) {
 				SetItemValueRaw(key, $"\"{value}\"");
-			} else {
+			}
+			else {
 				SetItemValueRaw(key, value);
 			}
 		}
 
-		public void SetItemValue<T>(string key, T value) where T : unmanaged
-		{
-			if (value is bool v && bTREAT_BOOL_AS_INT)
-			{
+		public void SetItemValue<T>(string key, T value) where T : unmanaged {
+			if (value is bool v && bTREAT_BOOL_AS_INT) {
 				SetItemValueRaw(key, v ? "1" : "0");
 			}
-			else
-            {
+			else {
 				SetItemValueRaw(key, value.ToString());
-            }
+			}
 		}
 
 		public void Clear() {
@@ -228,15 +219,15 @@ namespace Biscuit
 		public void SyncItemValue<T>(bool bToProfile, string key, ref T value) where T : unmanaged {
 			if (bToProfile) {
 				SetItemValue(key, value);
-			} else {
+			}
+			else {
 				value = GetItemValue(key, value);
 			}
 		}
 
 		public delegate bool FuncIsItemDeprecated(string key, string value);
 		public void DeleteItemsIf(FuncIsItemDeprecated funcIsItemDeprecated) {
-			for (int i = 0; i < m_items.Count; i++)
-			{
+			for (int i = 0; i < m_items.Count; i++) {
 				var item = m_items[i];
 				var match = s_reItem.Match(item);
 				if (!match.Success)
@@ -248,11 +239,9 @@ namespace Biscuit
 		}
 		public delegate bool FuncIsSectionDeprecated(string key, xLazyProfile section);
 		public void DeleteSectionsIf(FuncIsSectionDeprecated funcIsSectionDeprecated) {
-			for (int i = 0; i < m_sections.Count; i++)
-			{
+			for (int i = 0; i < m_sections.Count; i++) {
 				var item = m_sections.ElementAt(i);
-				if (funcIsSectionDeprecated(item.Key, item.Value))
-				{
+				if (funcIsSectionDeprecated(item.Key, item.Value)) {
 					m_sections.Remove(item.Key);
 				}
 			}
@@ -266,24 +255,21 @@ namespace Biscuit
 
 			string allText = File.ReadAllText(path);
 			var section = m_sections.ElementAt(0).Value;
-			foreach (var line in allText.Split('\n'))
-			{
+			foreach (var line in allText.Split('\n')) {
 				//string str = line.Trim();
 				//if (str.Length == 0)
 				//	continue;
 				var str = line.TrimEnd('\r');
 				var m = s_reSection.Match(str);
-				if (m.Success && m.Groups[0].Index == 0)
-				{
+				if (m.Success && m.Groups[0].Index == 0) {
 					string key = m.Groups[1].Value;
 					if (key == "")
 						continue;
-                    section = new xLazyProfile();
+					section = new xLazyProfile();
 					m_sections.Add(key, section);
 					m_sections[key].m_line = str;
 				}
-				else
-				{
+				else {
 					section.m_items.Add(str);
 				}
 			}

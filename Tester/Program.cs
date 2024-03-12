@@ -1,15 +1,12 @@
 ﻿using System;
 using Biscuit;
 
-public class Program
-{
-	public static void Main()
-	{
+public class Program {
+	public static void Main() {
 		TestProfile();
 	}
 
-	public static void TestProfile()
-	{
+	public static void TestProfile() {
 		//xLazyProfile profile = new xLazyProfile();
 		//var section = profile["section"];
 		//section.SetItemValue("key", "value");

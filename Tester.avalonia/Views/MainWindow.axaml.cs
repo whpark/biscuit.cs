@@ -5,14 +5,11 @@ using Avalonia.Controls;
 using CV = OpenCvSharp;
 using Biscuit;
 
-namespace Tester.avalonia.Views
-{
-	public partial class MainWindow : Window
-	{
-		public MainWindow()
-		{
+namespace Tester.avalonia.Views {
+	public partial class MainWindow : Window {
+		public MainWindow() {
 			InitializeComponent();
-			
+
 			// Set Working Directory
 			var dir = System.IO.Directory.GetCurrentDirectory();
 			var r = new System.Text.RegularExpressions.Regex(@"\\bin\\(x86|x64)\\(Debug|Release)\\net\d\.\d(-windows)?\z");

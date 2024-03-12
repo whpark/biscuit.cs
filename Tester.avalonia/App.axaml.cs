@@ -4,21 +4,15 @@ using Avalonia.Markup.Xaml;
 using Tester.avalonia.ViewModels;
 using Tester.avalonia.Views;
 
-namespace Tester.avalonia
-{
-	public partial class App : Application
-	{
-		public override void Initialize()
-		{
+namespace Tester.avalonia {
+	public partial class App : Application {
+		public override void Initialize() {
 			AvaloniaXamlLoader.Load(this);
 		}
 
-		public override void OnFrameworkInitializationCompleted()
-		{
-			if (ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop)
-			{
-				desktop.MainWindow = new MainWindow
-				{
+		public override void OnFrameworkInitializationCompleted() {
+			if (ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop) {
+				desktop.MainWindow = new MainWindow {
 					DataContext = new MainWindowViewModel(),
 				};
 			}

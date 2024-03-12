@@ -13,7 +13,6 @@ namespace Biscuit {
 		uint32_t m_pitch{};
 		uint32_t m_width{}, m_height{};
 		uint32_t m_dotsPerMeterX{}, m_dotsPerMeterY{};
-		array<Byte>^ m_buffer;
 
 	public:
 		~xImageHelper();

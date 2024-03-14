@@ -22,6 +22,8 @@ namespace Biscuit {
 		m_pitch = 0;
 		m_width = 0;
 		m_height = 0;
+		m_dotsPerMeterX = 0;
+		m_dotsPerMeterY = 0;
 	}
 
 	bool xImageHelper::LoadImage(String^ filename) {

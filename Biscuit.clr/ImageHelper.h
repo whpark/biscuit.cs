@@ -28,6 +28,8 @@ namespace Biscuit {
 		UInt32 DotsPerMeterY() { return m_dotsPerMeterY; }
 
 		array<Byte>^ GetColorIndexRow(int y);
+		array<Byte>^ GetBitPlaneRow(int y);
+		array<Byte>^ GetBitPlaneRowInverted(int y);
 		CV::Mat^ GetImage(bool bRGBtoBGR);
 
 	};

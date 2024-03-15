@@ -137,6 +137,30 @@ namespace Biscuit {
 		return row;
 	}
 
+	array<Byte>^ xImageHelper::GetBitPlaneRow(int y) {
+		if (!m_fb)
+			return nullptr;
+
+		y = m_height - 1 - y;	// flip y-axis
+		auto* bits = FreeImage_GetBits(m_fb);
+
+		array<Byte>^ row = gcnew array<Byte>(m_pitch);
+		uint64_t offset = y * m_pitch;
+		auto pos = bits + offset;
+		for (auto i{0u}; i < m_pitch; ++i) {
+			row[i] = *pos++;
+		}
+
+		return row;
+	}
+	array<Byte>^ xImageHelper::GetBitPlaneRowInverted(int y) {
+		auto row = GetBitPlaneRow(y);
+		for (int i{}; i < row->Length; ++i) {
+			row[i] = ~row[i];
+		}
+		return row;
+	}
+
 	CV::Mat^ xImageHelper::GetImage(bool bRGBtoBGR) {
 		if (!m_fb)
 			return nullptr;

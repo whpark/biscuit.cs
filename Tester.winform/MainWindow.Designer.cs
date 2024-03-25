@@ -23,28 +23,30 @@
 		///  the contents of this method with the code editor.
 		/// </summary>
 		private void InitializeComponent() {
+			Biscuit.winform.xMatView.sSettings sSettings2 = new Biscuit.winform.xMatView.sSettings();
 			panelBottom = new System.Windows.Forms.Panel();
-			matView1 = new Biscuit.winform.xMatView();
+			ui_view = new Biscuit.winform.xMatView();
 			panelBottom.SuspendLayout();
 			SuspendLayout();
 			// 
 			// panelBottom
 			// 
 			panelBottom.Anchor = System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Left | System.Windows.Forms.AnchorStyles.Right;
-			panelBottom.Controls.Add(matView1);
+			panelBottom.Controls.Add(ui_view);
 			panelBottom.Location = new System.Drawing.Point(12, 12);
 			panelBottom.Name = "panelBottom";
 			panelBottom.Size = new System.Drawing.Size(811, 427);
 			panelBottom.TabIndex = 2;
 			// 
-			// matView1
+			// ui_view
 			// 
-			matView1.Anchor = System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Left | System.Windows.Forms.AnchorStyles.Right;
-			matView1.AutoSizeMode = System.Windows.Forms.AutoSizeMode.GrowAndShrink;
-			matView1.Location = new System.Drawing.Point(0, 0);
-			matView1.Name = "matView1";
-			matView1.Size = new System.Drawing.Size(808, 424);
-			matView1.TabIndex = 0;
+			ui_view.Anchor = System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Left | System.Windows.Forms.AnchorStyles.Right;
+			ui_view.AutoSizeMode = System.Windows.Forms.AutoSizeMode.GrowAndShrink;
+			ui_view.Location = new System.Drawing.Point(0, 0);
+			ui_view.Name = "ui_view";
+			ui_view.Settings = sSettings2;
+			ui_view.Size = new System.Drawing.Size(808, 424);
+			ui_view.TabIndex = 0;
 			// 
 			// MainWindow
 			// 
@@ -61,6 +63,6 @@
 		#endregion
 
 		private System.Windows.Forms.Panel panelBottom;
-		private Biscuit.winform.xMatView matView1;
+		private Biscuit.winform.xMatView ui_view;
 	}
 }

@@ -127,6 +127,11 @@ namespace Biscuit {
 		public CV.Point2d m_origin;
 		public CV.Point2d m_offset;
 
+		public double Scale {
+			get => Math.Abs(m_mat.Determinant());
+			set => m_mat *= (value / m_mat.Determinant());
+		}
+
 		public xCoordTrans2d() {
 			m_mat = new CV.Mat(2, 2, CV.MatType.CV_64FC1);
 			var m = m_mat.GetGenericIndexer<double>();
@@ -156,7 +161,8 @@ namespace Biscuit {
 			return mat;
 		}
 		public xCoordTrans2d(xCoordTrans2d B) {
-			m_mat = new CV.Mat(B.m_mat);
+			m_mat = new();
+			B.m_mat.CopyTo(m_mat);
 			m_origin = B.m_offset;
 			m_offset = B.m_origin;
 		}

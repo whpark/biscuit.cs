@@ -11,6 +11,12 @@ using CV = OpenCvSharp;
 namespace Biscuit {
 	public class misc {
 
+		public static int AdjustAlign128(int w) { return ((w+15)/16*16); }  //	((w+15)>>4)<<4
+		public static int AdjustAlign64(int w) { return ((w+7)/8*8); }      //	((w+ 7)>>3)<<3
+		public static int AdjustAlign32(int w) { return ((w+3)/4*4); }      //	((w+ 3)>>2)<<2
+		public static int AdjustAlign16(int w) { return ((w+1)/2*2); }      //	((w+ 1)>>1)<<1
+
+
 		public static CV.Point Floor(CV.Point2d pt) {
 			return new CV.Point(Math.Floor(pt.X), Math.Floor(pt.Y));
 		}
@@ -117,6 +123,14 @@ namespace Biscuit {
 				&& ((sizeImage.Height < 0) || ((rect.Top < sizeImage.Height) && (rect.Bottom < sizeImage.Height) && (rect.Top < rect.Bottom)))
 				;
 		}
+		public static bool IsROI_Valid(CV.Rect rect, CV.Size sizeImage) {
+			return true
+				&& (rect.Left >= 0)
+				&& (rect.Top >= 0)
+				&& ((sizeImage.Width < 0) || ((rect.Left < sizeImage.Width) && (rect.Right < sizeImage.Width) && (rect.Left < rect.Right)))
+				&& ((sizeImage.Height < 0) || ((rect.Top < sizeImage.Height) && (rect.Bottom < sizeImage.Height) && (rect.Top < rect.Bottom)))
+				;
+		}
 
 		public static bool AdjustROI(ref CV.Rect2d rect, CV.Size sizeImage) {
 			rect = NormalizeRect(rect);
@@ -132,8 +146,37 @@ namespace Biscuit {
 
 			return !IsRectEmpty(rect);
 		}
+		public static bool AdjustROI(ref CV.Rect rect, CV.Size sizeImage) {
+			rect = NormalizeRect(rect);
+
+			if (rect.Left < 0)
+				rect.Left = 0;
+			if (rect.Top < 0)
+				rect.Top = 0;
+			if ((sizeImage.Width > 0) && (rect.Right > sizeImage.Width))
+				rect.Width = sizeImage.Width - rect.Left;
+			if ((sizeImage.Height > 0) && (rect.Bottom > sizeImage.Height))
+				rect.Height = sizeImage.Height - rect.Top;
+
+			return !IsRectEmpty(rect);
+		}
 
 		public static CV.Rect GetSafeROI(CV.Rect2d rect, CV.Size sizeImage) {
+			rect = NormalizeRect(rect);
+			CV.Rect r = new CV.Rect((int)rect.X, (int)rect.Y, (int)rect.Width, (int)rect.Height);
+
+			if (r.Left < 0)
+				r.Left = 0;
+			if (r.Top < 0)
+				r.Top = 0;
+			if ((sizeImage.Width > 0) && (r.Right > sizeImage.Width))
+				r.Width = sizeImage.Width - r.Left;
+			if ((sizeImage.Height > 0) && (r.Bottom > sizeImage.Height))
+				r.Height = sizeImage.Height - r.Top;
+
+			return r;
+		}
+		public static CV.Rect GetSafeROI(CV.Rect rect, CV.Size sizeImage) {
 			rect = NormalizeRect(rect);
 			CV.Rect r = new CV.Rect((int)rect.X, (int)rect.Y, (int)rect.Width, (int)rect.Height);
 

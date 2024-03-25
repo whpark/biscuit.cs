@@ -7,6 +7,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using System.Windows.Forms;
+using CV = OpenCvSharp;
 
 namespace Tester.winform {
 	public partial class MainWindow : Form {
@@ -24,7 +25,11 @@ namespace Tester.winform {
 
 			InitializeComponent();
 
-
+			CV.Mat mat = new CV.Mat(600, 800, CV.MatType.CV_8UC3, new CV.Scalar(0, 0, 0));
+			mat[mat.Rows/3*0, mat.Rows*1/3, 0, mat.Cols].SetTo(new CV.Scalar(255, 0, 0));
+			mat[mat.Rows/3*1, mat.Rows*2/3, 0, mat.Cols].SetTo(new CV.Scalar(0, 255, 0));
+			mat[mat.Rows/3*2, mat.Rows*3/3, 0, mat.Cols].SetTo(new CV.Scalar(0, 0, 255));
+			ui_view.SetImage(mat);
 		}
 
 	}

@@ -13,6 +13,9 @@ using Microsoft.VisualBasic.Devices;
 using System.IO.Compression;
 using System.Text.Json;
 using Microsoft.Win32;
+using SharpGL.SceneGraph;
+using System.Runtime.InteropServices;
+using System.Text;
 
 namespace Biscuit.winform {
 	public partial class xMatView : UserControl {
@@ -26,6 +29,17 @@ namespace Biscuit.winform {
 		public enum eZOOM { none = -1, one2one, fit2window, fit2width, fit2height, mouse_wheel_locked, free };  // lock : 
 		public enum eZOOM_IN { nearest, linear, bicubic, lanczos4/* EDSR, ESPCN, FSRCNN, LapSRN */};
 		public enum eZOOM_OUT { nearest, area, };
+
+		static Dictionary<eZOOM_IN, CV.InterpolationFlags> s_mapZoomInInterpolation = new () {
+			{eZOOM_IN.nearest, CV.InterpolationFlags.Nearest},
+			{eZOOM_IN.linear, CV.InterpolationFlags.Linear},
+			{eZOOM_IN.bicubic, CV.InterpolationFlags.Cubic},
+			{eZOOM_IN.lanczos4, CV.InterpolationFlags.Lanczos4},
+		};
+		static Dictionary<eZOOM_OUT, CV.InterpolationFlags> s_mapZoomOutInterpolation = new () {
+			{eZOOM_OUT.nearest, CV.InterpolationFlags.Nearest},
+			{eZOOM_OUT.area, CV.InterpolationFlags.Area},
+		};
 
 		[JsonConverter(typeof(JsonStringEnumConverter))]
 		public struct sSettings {
@@ -68,8 +82,8 @@ namespace Biscuit.winform {
 
 			bool bStop = false;
 
-			Mutex mtx = new();
-			List<CV.Mat> imagesThumbnail = new();
+			public Mutex mtx = new();
+			public List<CV.Mat> imagesThumbnail = new();
 			Thread? threadPyramidMaker = null;
 
 			public sPyramid() { }
@@ -80,6 +94,9 @@ namespace Biscuit.winform {
 					threadPyramidMaker.Join();
 					threadPyramidMaker = null;
 				}
+
+				if (src is null || src.Empty())
+					return false;
 
 				sPyramid self = this;
 				threadPyramidMaker = new Thread(() => {
@@ -96,6 +113,7 @@ namespace Biscuit.winform {
 					}
 					self.threadPyramidMaker = null;
 				});
+				threadPyramidMaker.Start();
 
 				return true;
 			}
@@ -183,6 +201,93 @@ namespace Biscuit.winform {
 		}
 
 
+		class sGLData {
+			public static string vertexShaderSource = 
+				@"
+				#version 330 core
+				layout(location = 0) in vec2 inPosition;
+				layout(location = 1) in vec2 inTexCoord;
+				out vec2 TexCoord;
+				void main() {
+					gl_Position = vec4(inPosition, 0.0, 1.0);
+					TexCoord = inTexCoord;
+				}
+				";
+			public static string fragmentShaderSource =
+				@"
+				#version 330 core
+				in vec2 TexCoord;
+				out vec4 FragColor;
+				uniform sampler2D textureSampler;
+				void main() {
+					FragColor = texture(textureSampler, TexCoord);
+				}
+				";
+			public uint shaderProgram = 0;
+			public uint [] VAO = { 0 };
+			public uint [] VBO = { 0 };
+
+			public sGLData() {
+
+			}
+		}
+		sGLData m_glData = new();
+
+		private bool InitializeGL() {
+			var gl = ui_gl.OpenGL;
+			// Vertex Shader Source
+			// Fragment Shader Source
+
+			if (m_glData.shaderProgram == 0) {
+				gl.GenVertexArrays((int)m_glData.VAO.Length, m_glData.VAO);
+				gl.BindVertexArray(m_glData.VAO[0]);
+
+				// Create Vertex Buffer Object (VBO)
+				gl.GenBuffers(1, m_glData.VBO);
+				gl.BindBuffer(OpenGL.GL_ARRAY_BUFFER, m_glData.VBO[0]);
+
+				// Define vertices and texture coordinates for a quad
+				float [] vertices = {
+					// Position    // Texture Coordinates
+					0.0f, 1.0f,  0.0f, 0.0f,
+					1.0f, 0.0f,  1.0f, 0.0f,
+					1.0f, 1.0f,  1.0f, 1.0f,
+					0.0f, 1.0f,  0.0f, 1.0f,
+				};
+				gl.BufferData(OpenGL.GL_ARRAY_BUFFER, vertices, OpenGL.GL_STATIC_DRAW);
+
+				// Create and compile the vertex shader
+				var vertexShader = gl.CreateShader(OpenGL.GL_VERTEX_SHADER);
+				gl.ShaderSource(vertexShader, sGLData.vertexShaderSource);
+				gl.CompileShader(vertexShader);
+
+				// Create and compile the fragment shader
+				uint fragmentShader = gl.CreateShader(OpenGL.GL_FRAGMENT_SHADER);
+				gl.ShaderSource(fragmentShader, sGLData.fragmentShaderSource);
+				gl.CompileShader(fragmentShader);
+
+				// Create and link the shader program
+				m_glData.shaderProgram = gl.CreateProgram();
+				gl.AttachShader(m_glData.shaderProgram, vertexShader);
+				gl.AttachShader(m_glData.shaderProgram, fragmentShader);
+			}
+			if (m_glData.shaderProgram != 0) {
+				gl.LinkProgram(m_glData.shaderProgram);
+				gl.UseProgram(m_glData.shaderProgram);
+
+				gl.Uniform1(gl.GetUniformLocation(m_glData.shaderProgram, "textureSampler"), 0);
+			}
+
+			// Specify vertex attribute data
+			gl.VertexAttribPointer(0, 2, OpenGL.GL_FLOAT, false, 4 * sizeof(float), IntPtr.Zero);
+			gl.EnableVertexAttribArray(0);
+			gl.VertexAttribPointer(1, 2, OpenGL.GL_FLOAT, false, 4 * sizeof(float), new IntPtr(2 * sizeof(float)));
+			gl.EnableVertexAttribArray(1);
+
+			return true;
+		}
+
+
 		private bool Setup() {
 			var img = m_img;
 			if (img is null)
@@ -247,7 +352,7 @@ namespace Biscuit.winform {
 			return new CV.Rect(0, 0, r.Width, r.Height);
 		}
 
-		bool UpdateCT(bool bCenter, eZOOM eZoom) {
+		bool UpdateCT(bool bCenter = false, eZOOM eZoom = eZOOM.none) {
 
 			if (m_img is null || m_img.Empty())
 				return false;
@@ -269,7 +374,7 @@ namespace Biscuit.winform {
 			//case free:			dScale = m_ctScreenFromImage.m_scale; break;
 			}
 			if (dScale > 0)
-				m_ctScreenFromImage.m_mat *= (dScale / m_ctScreenFromImage.m_mat.Determinant());
+				m_ctScreenFromImage.Scale = dScale;
 
 			// constraints. make image put on the center of the screen
 			if ( bCenter || eZoom switch { eZOOM.fit2window => true, eZOOM.fit2width => true, eZOOM.fit2height => true, _ => false } ) {
@@ -317,7 +422,7 @@ namespace Biscuit.winform {
 					m_ctScreenFromImage.m_offset.Y += rectClient.Top - rectImageScreen.Bottom + marginY;
 				}
 				else if (rectImageScreen.Top > rectClient.Bottom) {
-					m_ctScreenFromImage.m_offset.y += rectClient.Bottom - rectImageScreen.Top - marginY;
+					m_ctScreenFromImage.m_offset.Y += rectClient.Bottom - rectImageScreen.Top - marginY;
 				}
 			} else {
 				// default panning. make image stays inside the screen
@@ -407,9 +512,9 @@ namespace Biscuit.winform {
 			}
 
 			double dScale = double.TryParse(ui_edtZoom.Text, out dScale) ? dScale : 100.0;
-			if (m_ctScreenFromImage.m_mat.Determinant() != dScale*0.01) {
+			if (m_ctScreenFromImage.Scale != dScale*0.01) {
 				//m_bSkipSpinZoomEvent = true;
-				ui_edtZoom.Text = $"{m_ctScreenFromImage.m_mat.Determinant()*100.0}";
+				ui_edtZoom.Text = $"{m_ctScreenFromImage.Scale*100.0}";
 				//m_bSkipSpinZoomEvent = false;
 			}
 
@@ -418,6 +523,360 @@ namespace Biscuit.winform {
 
 		void UpdateView() {
 			ui_gl.Invalidate();
+		}
+
+		bool PutMatAsTexture(uint textureID, CV.Mat img, int width, CV.Rect rect, CV.Rect rectClient) {
+			if (textureID == 0 || (img is null) || img.Empty() || !img.IsContinuous())
+				return false;
+
+			//if (!m_glData.gl || !m_glData.shaderProgram || !m_glData.VAO || !m_glData.VBO) {
+			//	return gtl::PutMatAsTexture(textureID, img, width, rect);
+			//}
+
+			if (rectClient.Width <= 0 || rectClient.Height <= 0)
+				return false;
+
+			var gl = ui_gl.OpenGL;
+
+			gl.BindTexture(OpenGL.GL_TEXTURE_2D, textureID);
+			if ( (img.Step()%4) != 0 )
+				gl.PixelStore(OpenGL.GL_UNPACK_ALIGNMENT, 1);
+			else
+				gl.PixelStore(OpenGL.GL_UNPACK_ALIGNMENT, 4);
+
+			// Create the texture
+			sImageFormat f = GetGLImageFormatType(img.Type())??default;
+			if (f.eColorType == 0)
+				return false;
+
+			gl.TexImage2D(OpenGL.GL_TEXTURE_2D, 0, f.eColorType, img.Cols, img.Rows, 0, f.eFormat, f.ePixelType, img.Data);
+
+			gl.Uniform1(gl.GetUniformLocation(m_glData.shaderProgram, "textureSampler"), 0);
+
+			gl.TexParameter(OpenGL.GL_TEXTURE_2D, OpenGL.GL_TEXTURE_MIN_FILTER, OpenGL.GL_NEAREST);
+			gl.TexParameter(OpenGL.GL_TEXTURE_2D, OpenGL.GL_TEXTURE_MAG_FILTER, OpenGL.GL_NEAREST);
+			// Set texture clamping method
+			gl.TexParameter(OpenGL.GL_TEXTURE_2D, OpenGL.GL_TEXTURE_WRAP_S, OpenGL.GL_CLAMP_TO_BORDER);
+			gl.TexParameter(OpenGL.GL_TEXTURE_2D, OpenGL.GL_TEXTURE_WRAP_T, OpenGL.GL_CLAMP_TO_BORDER);
+
+			// patch
+			gl.BindVertexArray(m_glData.VAO[0]);
+			gl.BindBuffer(OpenGL.GL_ARRAY_BUFFER, m_glData.VBO[0]);
+
+			CV.Rect2f rc = new((float)rect.Left/(float)rectClient.Width, (float)rect.Top/(float)rectClient.Height,
+				(float)rect.Right/(float)rectClient.Width, (float)rect.Bottom/(float)rectClient.Height);
+			rc.X = rc.X*2 - 1;
+			rc.Y = rc.Y*2 - 1;
+			rc.Width = rc.X + rc.Width*2 - 1;
+			rc.Height = rc.Y + rc.Height*2 - 1;
+
+			// Define vertices and texture coordinates for a quad
+			var r = (float)width/img.Cols;
+			float [] vertices = {
+				// Position				// Texture Coordinates
+				//-r, -1.0f,			rc.right, rc.top,
+				//r, -1.0f,				rc.left, rc.top,
+				//r, 1.0f,				rc.left, rc.bottom,
+				//-r, 1.0f,				rc.right, rc.bottom,
+				rc.Left,  -rc.Top, 		0, 0,
+				rc.Right, -rc.Top, 		r, 0,
+				rc.Right, -rc.Bottom,	r, 1,
+				rc.Left,  -rc.Bottom,	0, 1,
+			};
+
+			gl.BufferData(OpenGL.GL_ARRAY_BUFFER, vertices, OpenGL.GL_STATIC_DRAW);
+			gl.DrawArrays(OpenGL.GL_TRIANGLE_FAN, 0, 4);
+
+			gl.BindVertexArray(0);
+
+			//glBegin(GL_QUADS);
+			//glTexCoord2f(0.f, 0.f);	glVertex2i(rect.left,   rect.top);
+			//glTexCoord2f(0.f, 1.f);	glVertex2i(rect.left,   rect.bottom);
+			//glTexCoord2f(r, 1.f);	glVertex2i(rect.right,  rect.bottom);
+			//glTexCoord2f(r, 0.f);	glVertex2i(rect.right,  rect.top);
+			//glEnd();
+
+			return true;
+		}
+
+		static CV.Scalar [] GetValue<T>(IntPtr ptr, int depth, int channel, int col0, int col1) where T : unmanaged {
+			CV.Scalar [] v = new CV.Scalar[col1-col0];
+			int el = channel*Marshal.SizeOf<T>();
+			IntPtr offset = ptr + col0 * el;
+			for (int x = col0; x < col1; x++) {
+				for (int i = 0; i < channel; ++i, offset += el) {
+					T value = Marshal.PtrToStructure<T>(offset);
+					v[i] = Convert.ToDouble(value);
+				}
+			}
+			return v;
+		}
+
+		public static CV.Scalar []? GetMatValue(IntPtr ptr, int depth, int channel, int col0, int col1) {
+			switch (depth) {
+			case CV.MatType.CV_8U:	return GetValue<Byte>(ptr, depth, channel, col0, col1);
+			case CV.MatType.CV_8S:	return GetValue<SByte>(ptr, depth, channel, col0, col1);
+			case CV.MatType.CV_16U:	return GetValue<UInt16>(ptr, depth, channel, col0, col1);
+			case CV.MatType.CV_16S:	return GetValue<Int16>(ptr, depth, channel, col0, col1);
+			case CV.MatType.CV_32S:	return GetValue<Int32>(ptr, depth, channel, col0, col1);
+			case CV.MatType.CV_32F:	return GetValue<float>(ptr, depth, channel, col0, col1);
+			case CV.MatType.CV_64F:	return GetValue<double>(ptr, depth, channel, col0, col1);
+			}
+
+			return null;
+		}
+
+		//! @brief Draw gridlines and pixel value of Mat to canvas.
+		public static bool DrawPixelValue(ref CV.Mat canvas, in CV.Mat imgOriginal, in CV.Rect roi, in xCoordTrans2d ctCanvasFromImage, in double minTextHeight) {
+
+			// Draw Grid / pixel value
+			if (ctCanvasFromImage.Scale < 4)
+				return false;
+			CV.Scalar cr = new (127, 127, 127, 255);
+			// grid - horizontal
+			for (int y = roi.Y, y1 = roi.Y+roi.Height; y < y1; y++) {
+				CV.Point2d pt0 = ctCanvasFromImage.Trans(new CV.Point2d(roi.X, y));
+				CV.Point2d pt1 = ctCanvasFromImage.Trans(new CV.Point2d(roi.X+roi.Width, y));
+				canvas.Line(misc.Floor(pt0), misc.Floor(pt1), cr);
+			}
+			// grid - vertical
+			for (int x = roi.X, x1 = roi.X+ roi.Width; x < x1; x++) {
+				CV.Point2d pt0 = ctCanvasFromImage.Trans(new CV.Point2d(x, roi.Y));
+				CV.Point2d pt1 = ctCanvasFromImage.Trans(new CV.Point2d(x, roi.Y+roi.Height));
+				canvas.Line(misc.Floor(pt0), misc.Floor(pt1), cr);
+			}
+
+			// Pixel Value
+			int nChannel = imgOriginal.Channels();
+			int depth = imgOriginal.Depth();
+
+			if ( ctCanvasFromImage.Scale < ((nChannel+1.0)*minTextHeight) )
+				return false;
+			double heightFont = misc.Clamp(ctCanvasFromImage.Scale/(nChannel+1.0), 1.0, 40.0) / 40.0;
+			//auto t0 = stdc::steady_clock::now();
+			for (int y = roi.Y, y1 = roi.Y+roi.Height; y < y1; y++) {
+				IntPtr ptr = imgOriginal.Ptr(y);
+				int x1 = roi.X+roi.Width;
+				//#pragma omp parallel for --------- little improvement
+				CV.Scalar[]? vs = GetMatValue(ptr, depth, nChannel, roi.X, x1);
+				if (vs is null)
+					continue;
+				for (int i = 0; i < vs.Length; i++) {
+					var v = vs[i];
+					CV.Point2d pt = ctCanvasFromImage.Trans(new CV.Point2d(roi.X+i, y));
+					//auto p = SkPoint::Make(pt.x, pt.y);
+					double avg = (v[0] + v[1] + v[2]) / nChannel;
+					CV.Scalar crText = (avg > 128) ? new CV.Scalar(0, 0, 0, 255) : new CV.Scalar(255, 255, 255, 255);
+					for (int ch = 0; ch < nChannel; ch++) {
+						string str = $"{v[ch]:3}";
+						canvas.PutText(str, new CV.Point(pt.X, pt.Y+(ch+1)*heightFont*40), CV.HersheyFonts.HersheyDuplex, heightFont, crText, 1, CV.LineTypes.Link8, true);
+					}
+				}
+			}
+			//auto t1 = stdc::steady_clock::now();
+			//auto dur = stdc::duration_cast<stdc::milliseconds>(t1-t0).count();
+			//OutputDebugString(std::format(L"{} ms\n", dur).c_str());
+
+			return true;
+		}
+
+
+		void PaintGL(SharpGL.OpenGL gl) {
+			if (m_img is null || m_img.Empty() || gl is null)
+				return;
+
+			//================
+			// openGL
+
+			// Client Rect
+			CV.Rect rectClient = GetViewRect();
+			CV.Size sizeView = rectClient.Size;
+			gl.Viewport(0, 0, sizeView.Width, sizeView.Height);
+
+			gl.MatrixMode(OpenGL.GL_PROJECTION);     // Make a simple 2D projection on the entire window
+			gl.LoadIdentity();
+			gl.Ortho(0.0, sizeView.Width, sizeView.Height, 0.0, 0.0, 100.0);
+
+			gl.MatrixMode(OpenGL.GL_MODELVIEW);    // Set the matrix mode to object modeling
+			CV.Scalar cr = new();
+			cr[0] = m_settings.crBackground[0];
+			cr[1] = m_settings.crBackground[1];
+			cr[2] = m_settings.crBackground[2];
+
+			gl.ClearColor((float)(cr[0]/255.0), (float)(cr[1]/255.0), (float)(cr[2]/255.0), 1.0f);
+			gl.ClearDepth(0.0f);
+			gl.Clear(OpenGL.GL_COLOR_BUFFER_BIT | OpenGL.GL_DEPTH_BUFFER_BIT); // Clear the window
+
+			//auto* context = view->context();
+			//if (!context)
+			//	return;
+			//auto* surface = view->context()->surface();
+
+			//gtl::xFinalAction faSwapBuffer{[&]{
+			//	//OutputDebugStringA("Flush\n");
+			//	glFlush();
+			//	context->swapBuffers(surface);
+			//}};
+
+			////event.Skip();
+			//if (!view or !context)
+			//	return;
+
+			if (misc.IsRectEmpty(rectClient))
+				return;
+
+			//==================
+			// Get Image - ROI
+			var ct = m_ctScreenFromImage;
+
+			// Position
+			CV.Rect rectImage = misc.Floor(misc.MakeRectFromPts(ct.TransI(rectClient.TopLeft), ct.TransI(rectClient.BottomRight)));
+			rectImage = misc.NormalizeRect(rectImage);
+			misc.InflateRect(ref rectImage, 1, 1);
+			if (rectImage.X < 0)
+				rectImage.X = 0;
+			if (rectImage.Y < 0)
+				rectImage.Y = 0;
+			if (rectImage.Right >= m_img.Cols)
+				rectImage.Width = m_img.Cols - rectImage.X;
+			if (rectImage.Bottom >= m_img.Rows)
+				rectImage.Height = m_img.Rows - rectImage.Y;
+			if (misc.IsRectEmpty(rectImage))
+				return;
+
+			CV.Rect roi = rectImage;
+			CV.Rect rectTarget = misc.Floor(misc.MakeRectFromPts(ct.Trans(rectImage.TopLeft), ct.Trans(rectImage.BottomRight)));
+			rectTarget = misc.NormalizeRect(rectTarget);
+			if (rectTarget.Width == 0)
+				rectTarget.Width = 1;
+			if (rectTarget.Height == 0)
+				rectTarget.Height = 1;
+			if (!misc.IsROI_Valid(roi, m_img.Size()))
+				return;
+
+			// img (roi)
+			CV.Rect rcTarget = new CV.Rect(new CV.Point(), new CV.Size(rectTarget.Width, rectTarget.Height));
+			CV.Rect rcTargetC = rcTarget;   // 4 byte align
+			if ((rcTarget.Width*m_img.ElemSize()) % 4 != 0)
+				rcTargetC.Width = misc.AdjustAlign32(rcTargetC.Width);
+			// check target image size
+			if ((UInt64)rcTargetC.Width * (UInt64)rcTargetC.Height > (UInt64)(1ul *1024*1024*1024))
+				return;
+
+			CV.Mat img = new CV.Mat(rcTargetC.Size, m_img.Type());
+			//img = m_option.crBackground;
+			var eInterpolation = CV.InterpolationFlags.Linear;
+			try {
+				if (ct.Scale < 1.0) {
+					if (s_mapZoomOutInterpolation.ContainsKey(m_settings.eZoomOut)) {
+						eInterpolation = s_mapZoomOutInterpolation[m_settings.eZoomOut];
+					}
+
+					// resize from pyramid image
+					double dScale = ct.Scale;
+					CV.Size2d size = new (dScale*m_img.Cols, dScale*m_img.Rows);
+					CV.Mat? imgPyr = null;
+					//{
+					//	auto t = std::chrono::steady_clock::now();
+					//	OutputDebugStringA(std::format("=======================\n1 {}\n", std::chrono::duration_cast<std::chrono::milliseconds>(t-t0)).c_str());
+					//	t0 = t;
+					//}
+					{
+						m_pyramid.mtx.WaitOne();
+						foreach (CV.Mat imgThumbnail in m_pyramid.imagesThumbnail) {
+							if (imgThumbnail.Cols < size.Width)
+								continue;
+							imgPyr = img;
+							break;
+						}
+						m_pyramid.mtx.ReleaseMutex();
+					}
+					//{
+					//	auto t = std::chrono::steady_clock::now();
+					//	OutputDebugStringA(std::format("=======================\n2 {}\n", std::chrono::duration_cast<std::chrono::milliseconds>(t-t0)).c_str());
+					//	t0 = t;
+					//}
+					if (imgPyr is not null) {
+
+						// show wait cursor
+						Cursor.Current = Cursors.WaitCursor;
+
+						double scaleP = m_img.Cols < m_img.Rows ? (double)imgPyr.Rows / m_img.Rows : (double)imgPyr.Cols / m_img.Cols;
+						double scale = imgPyr.Cols < imgPyr.Rows ? (double)size.Height / imgPyr.Rows : (double)size.Width / imgPyr.Cols;
+						CV.Rect roiP = roi;
+						roiP.X = (int)(scaleP * roiP.X);
+						roiP.Y = (int)(scaleP * roiP.Y);
+						roiP.Width = (int)(scaleP * roiP.Width);
+						roiP.Height = (int)(scaleP * roiP.Height);
+						roiP = misc.GetSafeROI(roiP, imgPyr.Size());
+						if (!misc.IsRectEmpty(roiP)) {
+							CV.Mat imgSrc = imgPyr[roiP];
+							imgSrc.Resize(rcTarget.Size, 0.0, 0.0, eInterpolation).CopyTo(img[rcTarget]);
+						}
+					}
+				}
+				else if (ct.Scale > 1.0) {
+					if (s_mapZoomInInterpolation.ContainsKey(m_settings.eZoomIn)) {
+						eInterpolation = s_mapZoomInInterpolation[m_settings.eZoomIn];
+					}
+					CV.Mat imgSrc = m_img[roi];
+					imgSrc.Resize(rcTarget.Size, 0.0, 0.0, eInterpolation).CopyTo(img[rcTarget]);
+				}
+				else {
+					m_img[roi].CopyTo(img[rcTarget]);
+				}
+			}
+			catch (Exception e) {
+				Debug.WriteLine($"Exception:{e}\n");
+			}
+			//catch (...) {
+			//	//OutputDebugStringA("cv::.......\n");
+			//}
+
+			if (!img.Empty()) {
+				if (m_settings.bDrawPixelValue) {
+					xCoordTrans2d ctCanvas = new xCoordTrans2d(m_ctScreenFromImage);
+					ctCanvas.m_offset -= m_ctScreenFromImage.Trans(roi.TopLeft);
+					DrawPixelValue(ref img, m_img, roi, ctCanvas, 8);   // DPI...
+				}
+
+				gl.Enable(OpenGL.GL_BLEND);
+				gl.BlendFunc(OpenGL.GL_SRC_ALPHA, OpenGL.GL_ONE_MINUS_SRC_ALPHA);
+
+				gl.Enable(OpenGL.GL_TEXTURE_2D);
+				uint [] textures = new uint[2]{ 0, 0 };
+				gl.GenTextures(textures.Length, textures);
+				if (textures[0] != 0) {
+					Debug.WriteLine("glGenTextures failed");
+					return;
+				}
+
+				//gtl::xFinalAction finalAction([&] {
+				//	glDisable(OpenGL.GL_TEXTURE_2D);
+				//	glDeleteTextures(std::size(textures), textures);
+				//});
+
+				// Use the shader program
+				if (m_glData.shaderProgram != 0) {
+					gl.UseProgram(m_glData.shaderProgram);
+				}
+
+				PutMatAsTexture(textures[0], img, rcTarget.Width, rectTarget, rectClient);
+
+				// Draw Selection Rect
+				if (m_mouse.bInSelectionMode || m_mouse.bRectSelected) {
+					CV.Rect rect = misc.Floor(misc.MakeRectFromPts(m_ctScreenFromImage.Trans(m_mouse.ptSel0), m_ctScreenFromImage.Trans(m_mouse.ptSel1)));
+					rect = misc.NormalizeRect(rect);
+					rect &= rectClient;
+					if (!misc.IsRectEmpty(rect)) {
+						CV.Mat rectangle = new(16, 16, CV.MatType.CV_8UC4, new CV.Scalar(255, 255, 127, 128));
+						PutMatAsTexture(textures[1], rectangle, rectangle.Cols, rect, rectClient);
+					}
+				}
+
+				gl.Disable(OpenGL.GL_TEXTURE_2D);
+				gl.DeleteTextures(textures.Length, textures);
+			}
 		}
 
 
@@ -439,6 +898,58 @@ namespace Biscuit.winform {
 
 			return true;
 		}
+
+		public bool ZoomInOut(double step, CV.Point ptAnchor, bool bCenter) {
+			var scale = m_ctScreenFromImage.Scale;
+			if (step > 0) {
+				foreach (var dZoom in s_dZoomLevels) {
+					if (dZoom > scale) {
+						scale = dZoom;
+						break;
+					}
+				}
+			}
+			else {
+				foreach (var dZoom in s_dZoomLevels.Reverse()) {
+					if (dZoom < scale) {
+						scale = dZoom;
+						break;
+					}
+				}
+			}
+			return SetZoom(scale, ptAnchor, bCenter);
+		}
+
+		public bool SetZoom(double scale, CV.Point ptAnchor, bool bCenter) {
+			if (m_img is null || m_img.Empty())
+				return false;
+
+			// Backup Image Position
+			CV.Point2d ptImage = m_ctScreenFromImage.TransI(ptAnchor);
+			// Get Scroll Amount
+			if (m_ctScreenFromImage.Scale == scale)
+				return true;
+			else
+				m_ctScreenFromImage.Scale = scale;
+
+			var rectClient = GetViewRect();
+			var dMinZoom = Math.Min(rectClient.Width/4.0 / m_img.Cols, rectClient.Height/4.0 / m_img.Rows);
+			dMinZoom = Math.Min(dMinZoom, 0.5);
+			m_ctScreenFromImage.Scale = misc.Clamp(m_ctScreenFromImage.Scale, dMinZoom, 1.0e3);
+			m_ctScreenFromImage.m_offset += ptAnchor - m_ctScreenFromImage.Trans(ptImage);
+			// Anchor point
+			var eZoom = m_eZoom;
+			if (eZoom != eZOOM.mouse_wheel_locked)
+				eZoom = eZOOM.free;
+			ui_cmbZoomMode.SelectedIndex = (int)eZoom;
+			//OnCmbZoomMode_currentIndexChanged(std::to_underlying(eZoom));
+			UpdateCT(bCenter);
+			UpdateScrollBars();
+			UpdateView();
+
+			return true;
+		}
+
 
 		public CV.Rect? GetSelectionRect() {
 			if (!m_mouse.bRectSelected)
@@ -502,54 +1013,7 @@ namespace Biscuit.winform {
 
 
 		private void ui_gl_OpenGLDraw(object sender, SharpGL.RenderEventArgs args) {
-			Debug.WriteLine("ui_gl_OpenGLDraw event triggered");
-
-			var gl = ui_gl.OpenGL;
-
-			gl.Viewport(0, 0, ui_gl.ClientRectangle.Width, ui_gl.ClientRectangle.Height);
-
-			gl.Enable(OpenGL.GL_TEXTURE_2D);
-
-			gl.Clear(OpenGL.GL_COLOR_BUFFER_BIT | OpenGL.GL_DEPTH_BUFFER_BIT);
-			gl.Viewport(0, 0, gl.RenderContextProvider.Width, gl.RenderContextProvider.Height);
-			gl.LoadIdentity();
-			//gl.Translate(0.0f, 0.0f, -5.0f);
-			gl.Ortho2D(gl.RenderContextProvider.Width, gl.RenderContextProvider.Height, 0, 0);
-			gl.MatrixMode(OpenGL.GL_MODELVIEW);
-
-			//gl.Rotate(rotation, 0.0f, 1.0f, 0.0f);
-			//rotation += 1.0f;
-
-			gl.BindTexture(OpenGL.GL_TEXTURE_2D, m_textures[0]);
-			//uint pixelFormat = OpenGL.GL_LUMINANCE;
-			//if (img.Type() == CV.MatType.CV_8UC1) {
-			//	pixelFormat = OpenGL.GL_LUMINANCE;
-			//}
-			//else if (img.Type() == CV.MatType.CV_8UC3) {
-			//	pixelFormat = OpenGL.GL_BGR;
-			//}
-			//else if (img.Type() == CV.MatType.CV_8UC4) {
-			//	pixelFormat = OpenGL.GL_BGRA;
-			//}
-			//gl.TexImage2D(OpenGL.GL_TEXTURE_2D, 0, pixelFormat, img.Cols, img.Rows, 0, pixelFormat, OpenGL.GL_UNSIGNED_BYTE, img.Data);
-
-			gl.Begin(OpenGL.GL_QUADS);
-
-			var rect = ui_gl.ClientRectangle;
-
-			//gl.TexCoord(0.0f, 0.0f); gl.Vertex(rect.Left, rect.Bottom);
-			//gl.TexCoord(1.0f, 0.0f); gl.Vertex(rect.Right, rect.Bottom);
-			//gl.TexCoord(1.0f, 1.0f); gl.Vertex(rect.Right, rect.Top);
-			//gl.TexCoord(0.0f, 1.0f); gl.Vertex(rect.Left, rect.Top);
-			gl.TexCoord(0.0f, 0.0f); gl.Vertex(0.0f, 0.0f);
-			gl.TexCoord(1.0f, 0.0f); gl.Vertex(10.0f, 0.0f);
-			gl.TexCoord(1.0f, 1.0f); gl.Vertex(10.0f, 10.0f);
-			gl.TexCoord(0.0f, 1.0f); gl.Vertex(0.0f, 10.0f);
-
-			gl.End();
-
-			gl.Flush();
-
+			PaintGL(ui_gl.OpenGL);
 		}
 
 
@@ -579,14 +1043,17 @@ namespace Biscuit.winform {
 		public struct sImageFormat {
 			public uint eColorType, eFormat, ePixelType;
 
+			public sImageFormat() {
+				eColorType = eFormat = ePixelType = 0;
+			}
+
 			public sImageFormat(uint eColorType, uint eFormat, uint ePixelType) {
 				this.eColorType = eColorType;
 				this.eFormat = eFormat;
 				this.ePixelType = ePixelType;
 			}
 		}
-		private static Dictionary<int, sImageFormat> m_mapImageFormat = new() {
-			{ CV.MatType.CV_8UC1,   new sImageFormat(1, OpenGL.GL_LUMINANCE,    OpenGL.GL_UNSIGNED_BYTE) },
+		private static Dictionary<int, sImageFormat> s_mapImageFormat = new() {
 			{ CV.MatType.CV_8UC1,   new sImageFormat(1, OpenGL.GL_LUMINANCE,    OpenGL.GL_UNSIGNED_BYTE) },
 			{ CV.MatType.CV_8UC3,   new sImageFormat(3, OpenGL.GL_RGB,          OpenGL.GL_UNSIGNED_BYTE) },
 			{ CV.MatType.CV_8UC4,   new sImageFormat(4, OpenGL.GL_RGBA,         OpenGL.GL_UNSIGNED_BYTE) },
@@ -604,8 +1071,10 @@ namespace Biscuit.winform {
 			{ CV.MatType.CV_32FC4,  new sImageFormat(4, OpenGL.GL_RGBA,         OpenGL.GL_FLOAT) }
 		};
 		public static sImageFormat? GetGLImageFormatType(int type) {
-			if (m_mapImageFormat.ContainsKey(type))
-				return m_mapImageFormat[type];
+			if (s_mapImageFormat is null)
+				return null;
+			if (s_mapImageFormat.ContainsKey(type))
+				return s_mapImageFormat[type];
 			else
 				return null;
 		}

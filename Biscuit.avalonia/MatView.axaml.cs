@@ -18,7 +18,7 @@ using CV = OpenCvSharp;
 namespace Biscuit.avalonia {
 
 	public partial class xMatView : UserControl {
-		public CV.Mat Image {
+		public CV.Mat? Image {
 			get => m_img;
 			set {
 				m_img = value;
@@ -35,7 +35,7 @@ namespace Biscuit.avalonia {
 			public CV.Rect2d rectClient, rectImageScreen, rectScrollRange;
 		};
 
-		private CV.Mat m_img;
+		private CV.Mat? m_img;
 
 		public enum eZOOM : int { none = -1, one2one, fit2window, fit2width, fit2height, mouse_wheel_locked, free }
 		public enum eZOOM_IN : int { nearest, linear, bicubic, lanczos4/* EDSR, ESPCN, FSRCNN, LapSRN */}

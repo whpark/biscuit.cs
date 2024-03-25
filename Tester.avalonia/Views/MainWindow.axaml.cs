@@ -12,7 +12,7 @@ namespace Tester.avalonia.Views {
 
 			// Set Working Directory
 			var dir = System.IO.Directory.GetCurrentDirectory();
-			var r = new System.Text.RegularExpressions.Regex(@"\\bin\\(x86|x64)\\(Debug|Release)\\net\d\.\d(-windows)?\z");
+			var r = new System.Text.RegularExpressions.Regex(@"\\bin(\\(x86|x64))?\\(Debug|Release)\\net\d\.\d(-windows)?\z");
 			var m = r.Match(dir);
 			if (m.Success) {
 				dir = dir.Substring(0, m.Index);

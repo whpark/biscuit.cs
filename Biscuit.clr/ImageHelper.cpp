@@ -161,7 +161,7 @@ namespace Biscuit {
 		return row;
 	}
 
-	CV::Mat^ xImageHelper::GetImage(bool bRGBtoBGR) {
+	CV::Mat^ xImageHelper::GetImage(bool bBGRtoRGB) {
 		if (!m_fb)
 			return nullptr;
 		auto* src = m_fb;
@@ -251,14 +251,14 @@ namespace Biscuit {
 			if (!data or !step or size->Width <= 0 or size->Height <= 0)
 				return {};
 
-			img = gcnew CV::Mat(size->Height, size->Width, type, (IntPtr)data, (long long)step);
+			CV::Mat^ imgTemp = gcnew CV::Mat(size->Height, size->Width, type, (IntPtr)data, (long long)step);	// !!! CAUTION no memory allocation. 
 			
 			if (flip)
-				img = img->Flip(CV::FlipMode::X);
+				img = imgTemp->Flip(CV::FlipMode::X);
 			else
-				img = img;
+				imgTemp->CopyTo(img);
 
-			if (bRGBtoBGR) {
+			if (bBGRtoRGB) {
 				CV::ColorConversionCodes cvt{};
 				switch (img->Channels()) {
 				case 3: cvt = CV::ColorConversionCodes::RGB2BGR; break;
@@ -278,6 +278,26 @@ namespace Biscuit {
 
 	}
 
+	BitmapData^ xImageHelper::GetBitmapData(CV::Mat^ mat) {
+		if (!mat)
+			return nullptr;
 
+		BitmapData^ bmpData = gcnew BitmapData();
+		auto const type = mat->Type();
+		if (type == CV::MatType::CV_8UC1)
+			bmpData->PixelFormat = PixelFormat::Format8bppIndexed;
+		else if (type == CV::MatType::CV_8UC3)
+			bmpData->PixelFormat = PixelFormat::Format24bppRgb;
+		else if (type == CV::MatType::CV_8UC4)
+			bmpData->PixelFormat = PixelFormat::Format32bppArgb;
+		else
+			return nullptr;
+		bmpData->Width = mat->Width;
+		bmpData->Height = mat->Height;
+		bmpData->Stride = mat->Step();
+		bmpData->Scan0 = mat->Data;
+
+		return bmpData;
+	}
 
 }

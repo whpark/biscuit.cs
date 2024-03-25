@@ -155,6 +155,11 @@ namespace Biscuit {
 			m[1, 1] = c;
 			return mat;
 		}
+		public xCoordTrans2d(xCoordTrans2d B) {
+			m_mat = new CV.Mat(B.m_mat);
+			m_origin = B.m_offset;
+			m_offset = B.m_origin;
+		}
 
 		public override CV.Point2d Trans(CV.Point2d pt) {
 			CV.Point2d pt2 = pt - m_origin;

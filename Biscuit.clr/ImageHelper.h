@@ -1,6 +1,7 @@
 #pragma once
 
 using namespace System;
+using namespace System::Drawing::Imaging;
 using namespace OpenCvSharp;
 namespace CV = OpenCvSharp;
 
@@ -27,11 +28,14 @@ namespace Biscuit {
 		UInt32 DotsPerMeterX() { return m_dotsPerMeterX; }
 		UInt32 DotsPerMeterY() { return m_dotsPerMeterY; }
 
+
 		array<Byte>^ GetColorIndexRow(int y);
 		array<Byte>^ GetBitPlaneRow(int y);
 		array<Byte>^ GetBitPlaneRowInverted(int y);
-		CV::Mat^ GetImage(bool bRGBtoBGR);
+		CV::Mat^ GetImage(bool bBGRtoRGB);
 
+	public:
+		static BitmapData^ GetBitmapData(CV::Mat^ mat);
 	};
 
 }

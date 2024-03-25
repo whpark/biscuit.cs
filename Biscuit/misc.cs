@@ -11,12 +11,29 @@ using CV = OpenCvSharp;
 namespace Biscuit {
 	public class misc {
 
+		public static CV.Point Floor(CV.Point2d pt) {
+			return new CV.Point(Math.Floor(pt.X), Math.Floor(pt.Y));
+		}
+		public static CV.Size Floor(CV.Size2d size) {
+			return new CV.Size(Math.Floor(size.Width), Math.Floor(size.Height));
+		}
+		public static CV.Rect Floor(CV.Rect2d rect) {
+			return new CV.Rect(Floor(rect.TopLeft), Floor(rect.Size));
+		}
+
 		public static T Clamp<T>(T value, T min, T max) where T : IComparable<T> {
 			if (value.CompareTo(min) < 0)
 				return min;
 			if (value.CompareTo(max) > 0)
 				return max;
 			return value;
+		}
+
+		public static CV.Rect MakeRectFromPts(CV.Point pt1, CV.Point pt2) {
+			return new CV.Rect(pt1.X, pt1.Y, pt2.X - pt1.X, pt2.Y - pt1.Y);
+		}
+		public static CV.Rect2d MakeRectFromPts(CV.Point2d pt1, CV.Point2d pt2) {
+			return new CV.Rect2d(pt1.X, pt1.Y, pt2.X - pt1.X, pt2.Y - pt1.Y);
 		}
 
 		public static CV.Rect2d NormalizeRect(CV.Rect2d rect) {
@@ -31,8 +48,39 @@ namespace Biscuit {
 			}
 			return rect_;
 		}
+		public static CV.Rect NormalizeRect(CV.Rect rect) {
+			CV.Rect rect_ = rect;
+			if (rect.Width < 0) {
+				rect_.X += rect.Width;
+				rect_.Width = -rect.Width;
+			}
+			if (rect.Height < 0) {
+				rect_.Y += rect.Height;
+				rect_.Height = -rect.Height;
+			}
+			return rect_;
+		}
+
+		public static void InflateRect(ref CV.Rect2d rect, double dx, double dy) {
+			rect.X -= dx;
+			rect.Y -= dy;
+			rect.Width += dx * 2;
+			rect.Height += dy * 2;
+		}
+		public static void InflateRect(ref CV.Rect rect, int dx, int dy) {
+			rect.X -= dx;
+			rect.Y -= dy;
+			rect.Width += dx * 2;
+			rect.Height += dy * 2;
+		}
 
 		public static void DeflateRect(ref CV.Rect2d rect, double dx, double dy) {
+			rect.X += dx;
+			rect.Y += dy;
+			rect.Width -= dx * 2;
+			rect.Height -= dy * 2;
+		}
+		public static void DeflateRect(ref CV.Rect rect, int dx, int dy) {
 			rect.X += dx;
 			rect.Y += dy;
 			rect.Width -= dx * 2;
@@ -49,6 +97,13 @@ namespace Biscuit {
 
 		public static bool IsRectNull(CV.Rect2d rect) {
 			return (rect.X == 0) && (rect.Y == 0) && (rect.Width == 0) && (rect.Height == 0);
+		}
+
+		public static CV.Point2d CenterPoint(CV.Rect2d rect) {
+			return new CV.Point2d(rect.X + rect.Width/2.0, rect.Y + rect.Height /2.0);
+		}
+		public static CV.Point CenterPoint(CV.Rect rect) {
+			return new CV.Point(rect.X + rect.Width/2, rect.Y + rect.Height /2);
 		}
 
 		//-----------------------------------------------------------------------------

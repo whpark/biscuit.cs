@@ -235,11 +235,13 @@ namespace Biscuit.winform {
 
 		private bool InitializeGL() {
 			var gl = ui_gl.OpenGL;
+
 			// Vertex Shader Source
 			// Fragment Shader Source
 
 			if (m_glData.shaderProgram == 0) {
-				gl.GenVertexArrays((int)m_glData.VAO.Length, m_glData.VAO);
+
+				gl.GenVertexArrays(m_glData.VAO.Length, m_glData.VAO);
 				gl.BindVertexArray(m_glData.VAO[0]);
 
 				// Create Vertex Buffer Object (VBO)
@@ -329,6 +331,7 @@ namespace Biscuit.winform {
 		}
 
 		private void MatView_Load(object sender, EventArgs e) {
+			InitializeGL();
 
 			// Zoom Mode
 			var names = Enum.GetNames(typeof(eZOOM));
@@ -529,9 +532,10 @@ namespace Biscuit.winform {
 			if (textureID == 0 || (img is null) || img.Empty() || !img.IsContinuous())
 				return false;
 
-			//if (!m_glData.gl || !m_glData.shaderProgram || !m_glData.VAO || !m_glData.VBO) {
-			//	return gtl::PutMatAsTexture(textureID, img, width, rect);
-			//}
+			if (m_glData.shaderProgram == 0 || m_glData.VAO is null || m_glData.VBO is null) {
+				return false;
+				//return PutMatAsTexture(textureID, img, width, rect);
+			}
 
 			if (rectClient.Width <= 0 || rectClient.Height <= 0)
 				return false;
@@ -563,12 +567,12 @@ namespace Biscuit.winform {
 			gl.BindVertexArray(m_glData.VAO[0]);
 			gl.BindBuffer(OpenGL.GL_ARRAY_BUFFER, m_glData.VBO[0]);
 
-			CV.Rect2f rc = new((float)rect.Left/(float)rectClient.Width, (float)rect.Top/(float)rectClient.Height,
+			CV.Rect2f rc = CV.Rect2f.FromLTRB((float)rect.Left/(float)rectClient.Width, (float)rect.Top/(float)rectClient.Height,
 				(float)rect.Right/(float)rectClient.Width, (float)rect.Bottom/(float)rectClient.Height);
-			rc.X = rc.X*2 - 1;
-			rc.Y = rc.Y*2 - 1;
 			rc.Width = rc.X + rc.Width*2 - 1;
 			rc.Height = rc.Y + rc.Height*2 - 1;
+			rc.X = rc.X*2 - 1;
+			rc.Y = rc.Y*2 - 1;
 
 			// Define vertices and texture coordinates for a quad
 			var r = (float)width/img.Cols;
@@ -669,7 +673,7 @@ namespace Biscuit.winform {
 					CV.Scalar crText = (avg > 128) ? new CV.Scalar(0, 0, 0, 255) : new CV.Scalar(255, 255, 255, 255);
 					for (int ch = 0; ch < nChannel; ch++) {
 						string str = $"{v[ch]:3}";
-						canvas.PutText(str, new CV.Point(pt.X, pt.Y+(ch+1)*heightFont*40), CV.HersheyFonts.HersheyDuplex, heightFont, crText, 1, CV.LineTypes.Link8, true);
+						canvas.PutText(str, new CV.Point(pt.X, pt.Y+(ch+1)*heightFont*40), CV.HersheyFonts.HersheyDuplex, heightFont, crText, 1, CV.LineTypes.Link8, false);
 					}
 				}
 			}
@@ -846,7 +850,7 @@ namespace Biscuit.winform {
 				gl.Enable(OpenGL.GL_TEXTURE_2D);
 				uint [] textures = new uint[2]{ 0, 0 };
 				gl.GenTextures(textures.Length, textures);
-				if (textures[0] != 0) {
+				if (textures[0] == 0) {
 					Debug.WriteLine("glGenTextures failed");
 					return;
 				}
@@ -877,6 +881,8 @@ namespace Biscuit.winform {
 				gl.Disable(OpenGL.GL_TEXTURE_2D);
 				gl.DeleteTextures(textures.Length, textures);
 			}
+
+			gl.Flush();
 		}
 
 

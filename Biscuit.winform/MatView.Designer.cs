@@ -169,12 +169,14 @@
 			// ui_gl
 			// 
 			ui_gl.Anchor = AnchorStyles.Top | AnchorStyles.Bottom | AnchorStyles.Left | AnchorStyles.Right;
+			ui_gl.AutoSizeMode = AutoSizeMode.GrowAndShrink;
 			ui_gl.DrawFPS = false;
+			ui_gl.FrameRate = 0;
 			ui_gl.Location = new Point(4, 41);
 			ui_gl.Margin = new Padding(4, 5, 4, 5);
 			ui_gl.Name = "ui_gl";
 			ui_gl.OpenGLVersion = SharpGL.Version.OpenGLVersion.OpenGL4_0;
-			ui_gl.RenderContextType = SharpGL.RenderContextType.DIBSection;
+			ui_gl.RenderContextType = SharpGL.RenderContextType.FBO;
 			ui_gl.RenderTrigger = SharpGL.RenderTrigger.TimerBased;
 			ui_gl.Size = new Size(799, 171);
 			ui_gl.TabIndex = 3;

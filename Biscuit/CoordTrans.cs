@@ -128,8 +128,8 @@ namespace Biscuit {
 		public CV.Point2d m_offset;
 
 		public double Scale {
-			get => Math.Abs(m_mat.Determinant());
-			set => m_mat *= (value / m_mat.Determinant());
+			get => Math.Sqrt(Math.Abs(m_mat.Determinant()));
+			set => m_mat *= (value / Math.Sqrt(Math.Abs(m_mat.Determinant())));
 		}
 
 		public xCoordTrans2d() {

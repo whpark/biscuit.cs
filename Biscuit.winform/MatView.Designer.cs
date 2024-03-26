@@ -37,8 +37,10 @@
 			ui_scrollbarHorz = new HScrollBar();
 			ui_scrollbarVert = new VScrollBar();
 			ui_gl = new SharpGL.OpenGLControl();
+			ui_picture = new PictureBox();
 			ui_pnlToolbar.SuspendLayout();
 			((System.ComponentModel.ISupportInitialize)ui_gl).BeginInit();
+			((System.ComponentModel.ISupportInitialize)ui_picture).BeginInit();
 			SuspendLayout();
 			// 
 			// flowLayoutPanel1
@@ -178,13 +180,26 @@
 			ui_gl.OpenGLVersion = SharpGL.Version.OpenGLVersion.OpenGL4_0;
 			ui_gl.RenderContextType = SharpGL.RenderContextType.FBO;
 			ui_gl.RenderTrigger = SharpGL.RenderTrigger.TimerBased;
-			ui_gl.Size = new Size(799, 171);
+			ui_gl.Size = new Size(439, 171);
 			ui_gl.TabIndex = 3;
+			ui_gl.OpenGLDraw += ui_gl_OpenGLDraw;
+			// 
+			// ui_picture
+			// 
+			ui_picture.Anchor = AnchorStyles.Top | AnchorStyles.Bottom | AnchorStyles.Left | AnchorStyles.Right;
+			ui_picture.Location = new Point(446, 41);
+			ui_picture.Name = "ui_picture";
+			ui_picture.Size = new Size(358, 176);
+			ui_picture.TabIndex = 4;
+			ui_picture.TabStop = false;
+			ui_picture.Paint += ui_picture_Paint;
+			ui_picture.Resize += ui_picture_Resize;
 			// 
 			// xMatView
 			// 
 			AutoScaleDimensions = new SizeF(8F, 20F);
 			AutoScaleMode = AutoScaleMode.Font;
+			Controls.Add(ui_picture);
 			Controls.Add(ui_gl);
 			Controls.Add(ui_scrollbarVert);
 			Controls.Add(ui_scrollbarHorz);
@@ -195,6 +210,7 @@
 			ui_pnlToolbar.ResumeLayout(false);
 			ui_pnlToolbar.PerformLayout();
 			((System.ComponentModel.ISupportInitialize)ui_gl).EndInit();
+			((System.ComponentModel.ISupportInitialize)ui_picture).EndInit();
 			ResumeLayout(false);
 		}
 
@@ -214,5 +230,6 @@
 		private Button ui_btnSettings;
 		private Button ui_btnZoomFit;
 		private SharpGL.OpenGLControl ui_gl;
+		private PictureBox ui_picture;
 	}
 }

@@ -18,6 +18,7 @@ using System.Runtime.InteropServices;
 using System.Text;
 
 namespace Biscuit.winform {
+
 	public partial class xMatView : UserControl {
 
 		private CV.Mat? m_img;
@@ -87,20 +88,24 @@ namespace Biscuit.winform {
 			Thread? threadPyramidMaker = null;
 
 			public sPyramid() { }
-
 			public bool StartMakePyramids(CV.Mat src, UInt64 minImageArea = 3000*2000) {
-				if (threadPyramidMaker is not null) {
-					bStop = true;
-					threadPyramidMaker.Join();
-					threadPyramidMaker = null;
+				var self = this;
+				if (self.threadPyramidMaker is not null) {
+					self.bStop = true;
+					self.threadPyramidMaker.Join();
+					self.threadPyramidMaker = null;
 				}
 
 				if (src is null || src.Empty())
 					return false;
 
-				sPyramid self = this;
 				threadPyramidMaker = new Thread(() => {
 					CV.Mat img = src;
+					{
+						self.mtx.WaitOne();
+						self.imagesThumbnail.Add(img);
+						self.mtx.ReleaseMutex();
+					}
 					while (!self.bStop && ((UInt64)img.Cols*(UInt64)img.Rows > minImageArea)) {
 						CV.Mat imgPyr = new();
 						CV.Cv2.PyrDown(img, imgPyr);
@@ -114,9 +119,9 @@ namespace Biscuit.winform {
 					self.threadPyramidMaker = null;
 				});
 				threadPyramidMaker.Start();
-
 				return true;
 			}
+
 		}
 		sPyramid m_pyramid = new();
 
@@ -154,9 +159,6 @@ namespace Biscuit.winform {
 		eZOOM m_eZoom = eZOOM.fit2window;
 		xCoordTrans2d m_ctScreenFromImage = new();
 
-		uint [] m_textures = new uint[2];
-
-
 		//-------------------------------------------------------------------------------------------------------------------------
 		public xMatView() {
 			InitializeComponent();
@@ -173,7 +175,7 @@ namespace Biscuit.winform {
 			else
 				m_img = img;
 
-			m_pyramid.StartMakePyramids(img);
+			m_pyramid.StartMakePyramids(m_img);
 
 			// check (opengl) texture format
 			var aImageFormat = GetGLImageFormatType(m_img.Type());
@@ -187,22 +189,21 @@ namespace Biscuit.winform {
 
 			if (eZoomMode != eZOOM.none) {
 				ui_cmbZoomMode.SelectedIndex = (int)eZoomMode;
-				//wxCommandEvent evt;
-				//OnCombobox_ZoomMode(evt);
-			} else {
-				//UpdateCT(bCenter);
-				//UpdateScrollBars();
-				//m_view->Refresh();
-				//m_view->Update();
+				SetZoomMode(eZoomMode, false);
 			}
-
+			else {
+				UpdateCT(bCenter);
+				UpdateScrollBars();
+				//m_view->Refresh();
+				UpdateView();
+			}
 
 			return true;
 		}
 
 
 		class sGLData {
-			public static string vertexShaderSource = 
+			public static string vertexShaderSource =
 				@"
 				#version 330 core
 				layout(location = 0) in vec2 inPosition;
@@ -227,17 +228,12 @@ namespace Biscuit.winform {
 			public uint [] VAO = { 0 };
 			public uint [] VBO = { 0 };
 
-			public sGLData() {
-
-			}
+			public sGLData() { }
 		}
 		sGLData m_glData = new();
 
 		private bool InitializeGL() {
 			var gl = ui_gl.OpenGL;
-
-			// Vertex Shader Source
-			// Fragment Shader Source
 
 			if (m_glData.shaderProgram == 0) {
 
@@ -289,46 +285,46 @@ namespace Biscuit.winform {
 			return true;
 		}
 
+		//uint [] m_textures = new uint[2];
+		//private bool Setup() {
+		//	var img = m_img;
+		//	if (img is null)
+		//		return false;
 
-		private bool Setup() {
-			var img = m_img;
-			if (img is null)
-				return false;
+		//	var gl = ui_gl.OpenGL;
+		//	gl.LoadIdentity();
 
-			var gl = ui_gl.OpenGL;
-			gl.LoadIdentity();
+		//	gl.Enable(OpenGL.GL_TEXTURE_2D);
 
-			gl.Enable(OpenGL.GL_TEXTURE_2D);
+		//	gl.GenTextures(1, m_textures);
+		//	gl.BindTexture(OpenGL.GL_TEXTURE_2D, m_textures[0]);
+		//	uint pixelFormat = OpenGL.GL_LUMINANCE;
+		//	uint bytesPerPixel = 1;
+		//	if (img.Type() == CV.MatType.CV_8UC1) {
+		//		pixelFormat = OpenGL.GL_LUMINANCE;
+		//		bytesPerPixel = 1;
+		//	}
+		//	else if (img.Type() == CV.MatType.CV_8UC3) {
+		//		pixelFormat = OpenGL.GL_BGR;
+		//		bytesPerPixel = 3;
+		//	}
+		//	else if (img.Type() == CV.MatType.CV_8UC4) {
+		//		pixelFormat = OpenGL.GL_BGRA;
+		//		bytesPerPixel = 4;
+		//	}
+		//	if ((img.Step() % 4) != 0)
+		//		gl.PixelStore(OpenGL.GL_UNPACK_ALIGNMENT, 1);
+		//	else
+		//		gl.PixelStore(OpenGL.GL_UNPACK_ALIGNMENT, 4);
 
-			gl.GenTextures(1, m_textures);
-			gl.BindTexture(OpenGL.GL_TEXTURE_2D, m_textures[0]);
-			uint pixelFormat = OpenGL.GL_LUMINANCE;
-			uint bytesPerPixel = 1;
-			if (img.Type() == CV.MatType.CV_8UC1) {
-				pixelFormat = OpenGL.GL_LUMINANCE;
-				bytesPerPixel = 1;
-			}
-			else if (img.Type() == CV.MatType.CV_8UC3) {
-				pixelFormat = OpenGL.GL_BGR;
-				bytesPerPixel = 3;
-			}
-			else if (img.Type() == CV.MatType.CV_8UC4) {
-				pixelFormat = OpenGL.GL_BGRA;
-				bytesPerPixel = 4;
-			}
-			if ((img.Step() % 4) != 0)
-				gl.PixelStore(OpenGL.GL_UNPACK_ALIGNMENT, 1);
-			else
-				gl.PixelStore(OpenGL.GL_UNPACK_ALIGNMENT, 4);
+		//	gl.TexImage2D(OpenGL.GL_TEXTURE_2D, 0, bytesPerPixel, img.Cols, img.Rows, 0, pixelFormat, OpenGL.GL_UNSIGNED_BYTE, img.Ptr());
 
-			gl.TexImage2D(OpenGL.GL_TEXTURE_2D, 0, bytesPerPixel, img.Cols, img.Rows, 0, pixelFormat, OpenGL.GL_UNSIGNED_BYTE, img.Ptr());
+		//	//  Specify linear filtering.
+		//	gl.TexParameter(OpenGL.GL_TEXTURE_2D, OpenGL.GL_TEXTURE_MIN_FILTER, OpenGL.GL_LINEAR);
+		//	gl.TexParameter(OpenGL.GL_TEXTURE_2D, OpenGL.GL_TEXTURE_MAG_FILTER, OpenGL.GL_LINEAR);
 
-			//  Specify linear filtering.
-			gl.TexParameter(OpenGL.GL_TEXTURE_2D, OpenGL.GL_TEXTURE_MIN_FILTER, OpenGL.GL_LINEAR);
-			gl.TexParameter(OpenGL.GL_TEXTURE_2D, OpenGL.GL_TEXTURE_MAG_FILTER, OpenGL.GL_LINEAR);
-
-			return true;
-		}
+		//	return true;
+		//}
 
 		private void MatView_Load(object sender, EventArgs e) {
 			InitializeGL();
@@ -356,13 +352,16 @@ namespace Biscuit.winform {
 		}
 
 		bool UpdateCT(bool bCenter = false, eZOOM eZoom = eZOOM.none) {
-
 			if (m_img is null || m_img.Empty())
 				return false;
 			if (eZoom == eZOOM.none)
 				eZoom = m_eZoom;
 
-			ui_cmbZoomMode.SelectedIndex = (int)eZoom;
+			if (ui_cmbZoomMode.Items.Count > (int)eZoom) {
+				m_eZoom = eZoom;
+				if (ui_cmbZoomMode.SelectedIndex != (int)eZoom)
+					ui_cmbZoomMode.SelectedIndex = (int)eZoom;
+			}
 
 			CV.Rect rectClient = GetViewRect();
 			CV.Size sizeClient = rectClient.Size;
@@ -370,17 +369,25 @@ namespace Biscuit.winform {
 			// scale
 			double dScale = -1.0;
 			switch (eZoom) {
-			case eZOOM.one2one:		dScale = 1.0; break;
-			case eZOOM.fit2window:	dScale = Math.Min((double)sizeClient.Width / m_img.Cols, (double)sizeClient.Height / m_img.Rows); break;
-			case eZOOM.fit2width:	dScale = (double)sizeClient.Width / m_img.Cols; break;
-			case eZOOM.fit2height:	dScale = (double)sizeClient.Height / m_img.Rows; break;
-			//case free:			dScale = m_ctScreenFromImage.m_scale; break;
+			case eZOOM.one2one:
+				dScale = 1.0;
+				break;
+			case eZOOM.fit2window:
+				dScale = Math.Min((double)sizeClient.Width / m_img.Cols, (double)sizeClient.Height / m_img.Rows);
+				break;
+			case eZOOM.fit2width:
+				dScale = (double)sizeClient.Width / m_img.Cols;
+				break;
+			case eZOOM.fit2height:
+				dScale = (double)sizeClient.Height / m_img.Rows;
+				break;
+				//case free:			dScale = m_ctScreenFromImage.m_scale; break;
 			}
 			if (dScale > 0)
 				m_ctScreenFromImage.Scale = dScale;
 
 			// constraints. make image put on the center of the screen
-			if ( bCenter || eZoom switch { eZOOM.fit2window => true, eZOOM.fit2width => true, eZOOM.fit2height => true, _ => false } ) {
+			if (bCenter || eZoom switch { eZOOM.fit2window => true, eZOOM.fit2width => true, eZOOM.fit2height => true, _ => false }) {
 
 				xCoordTrans2d ct2 = new xCoordTrans2d(m_ctScreenFromImage); // copy
 				ct2.m_origin.X = m_img.Cols/2.0;
@@ -427,7 +434,8 @@ namespace Biscuit.winform {
 				else if (rectImageScreen.Top > rectClient.Bottom) {
 					m_ctScreenFromImage.m_offset.Y += rectClient.Bottom - rectImageScreen.Top - marginY;
 				}
-			} else {
+			}
+			else {
 				// default panning. make image stays inside the screen
 				if (rectImageScreen.Width <= rectClient.Width) {
 					var pt = m_ctScreenFromImage.Trans(new CV.Point2d(m_img.Cols/2.0, 0.0));
@@ -473,7 +481,7 @@ namespace Biscuit.winform {
 			else {
 				rectScrollRange |= rectImageScreen;
 			}
-			return new sScrollGeometry( rectClient, rectImageScreen, rectScrollRange);
+			return new sScrollGeometry(rectClient, rectImageScreen, rectScrollRange);
 		}
 
 		bool UpdateScrollBars() {
@@ -514,10 +522,10 @@ namespace Biscuit.winform {
 				}
 			}
 
-			double dScale = double.TryParse(ui_edtZoom.Text, out dScale) ? dScale : 100.0;
+			double dScale = double.TryParse(ui_edtZoom.Text.TrimEnd('%'), out dScale) ? dScale : 100.0;
 			if (m_ctScreenFromImage.Scale != dScale*0.01) {
 				//m_bSkipSpinZoomEvent = true;
-				ui_edtZoom.Text = $"{m_ctScreenFromImage.Scale*100.0}";
+				ui_edtZoom.Text = $"{m_ctScreenFromImage.Scale*100.0:#,###.##} %";
 				//m_bSkipSpinZoomEvent = false;
 			}
 
@@ -543,7 +551,7 @@ namespace Biscuit.winform {
 			var gl = ui_gl.OpenGL;
 
 			gl.BindTexture(OpenGL.GL_TEXTURE_2D, textureID);
-			if ( (img.Step()%4) != 0 )
+			if ((img.Step()%4) != 0)
 				gl.PixelStore(OpenGL.GL_UNPACK_ALIGNMENT, 1);
 			else
 				gl.PixelStore(OpenGL.GL_UNPACK_ALIGNMENT, 4);
@@ -578,14 +586,14 @@ namespace Biscuit.winform {
 			var r = (float)width/img.Cols;
 			float [] vertices = {
 				// Position				// Texture Coordinates
-				//-r, -1.0f,			rc.right, rc.top,
-				//r, -1.0f,				rc.left, rc.top,
-				//r, 1.0f,				rc.left, rc.bottom,
-				//-r, 1.0f,				rc.right, rc.bottom,
-				rc.Left,  -rc.Top, 		0, 0,
-				rc.Right, -rc.Top, 		r, 0,
-				rc.Right, -rc.Bottom,	r, 1,
-				rc.Left,  -rc.Bottom,	0, 1,
+				//-r, -1.0f,				rc.Right, rc.Top,
+				//r, -1.0f,               rc.Left,  rc.Top,
+				//r, 1.0f,                rc.Left,  rc.Bottom,
+				//-r, 1.0f,               rc.Right, rc.Bottom,
+				rc.Left,  -rc.Top,      0, 0,
+				rc.Right, -rc.Top,      r, 0,
+				rc.Right, -rc.Bottom,   r, 1,
+				rc.Left,  -rc.Bottom,   0, 1,
 			};
 
 			gl.BufferData(OpenGL.GL_ARRAY_BUFFER, vertices, OpenGL.GL_STATIC_DRAW);
@@ -603,7 +611,7 @@ namespace Biscuit.winform {
 			return true;
 		}
 
-		static CV.Scalar [] GetValue<T>(IntPtr ptr, int depth, int channel, int col0, int col1) where T : unmanaged {
+		static CV.Scalar[] GetValue<T>(IntPtr ptr, int depth, int channel, int col0, int col1) where T : unmanaged {
 			CV.Scalar [] v = new CV.Scalar[col1-col0];
 			int el = channel*Marshal.SizeOf<T>();
 			IntPtr offset = ptr + col0 * el;
@@ -616,15 +624,22 @@ namespace Biscuit.winform {
 			return v;
 		}
 
-		public static CV.Scalar []? GetMatValue(IntPtr ptr, int depth, int channel, int col0, int col1) {
+		public static CV.Scalar[]? GetMatValue(IntPtr ptr, int depth, int channel, int col0, int col1) {
 			switch (depth) {
-			case CV.MatType.CV_8U:	return GetValue<Byte>(ptr, depth, channel, col0, col1);
-			case CV.MatType.CV_8S:	return GetValue<SByte>(ptr, depth, channel, col0, col1);
-			case CV.MatType.CV_16U:	return GetValue<UInt16>(ptr, depth, channel, col0, col1);
-			case CV.MatType.CV_16S:	return GetValue<Int16>(ptr, depth, channel, col0, col1);
-			case CV.MatType.CV_32S:	return GetValue<Int32>(ptr, depth, channel, col0, col1);
-			case CV.MatType.CV_32F:	return GetValue<float>(ptr, depth, channel, col0, col1);
-			case CV.MatType.CV_64F:	return GetValue<double>(ptr, depth, channel, col0, col1);
+			case CV.MatType.CV_8U:
+				return GetValue<Byte>(ptr, depth, channel, col0, col1);
+			case CV.MatType.CV_8S:
+				return GetValue<SByte>(ptr, depth, channel, col0, col1);
+			case CV.MatType.CV_16U:
+				return GetValue<UInt16>(ptr, depth, channel, col0, col1);
+			case CV.MatType.CV_16S:
+				return GetValue<Int16>(ptr, depth, channel, col0, col1);
+			case CV.MatType.CV_32S:
+				return GetValue<Int32>(ptr, depth, channel, col0, col1);
+			case CV.MatType.CV_32F:
+				return GetValue<float>(ptr, depth, channel, col0, col1);
+			case CV.MatType.CV_64F:
+				return GetValue<double>(ptr, depth, channel, col0, col1);
 			}
 
 			return null;
@@ -654,7 +669,7 @@ namespace Biscuit.winform {
 			int nChannel = imgOriginal.Channels();
 			int depth = imgOriginal.Depth();
 
-			if ( ctCanvasFromImage.Scale < ((nChannel+1.0)*minTextHeight) )
+			if (ctCanvasFromImage.Scale < ((nChannel+1.0)*minTextHeight))
 				return false;
 			double heightFont = misc.Clamp(ctCanvasFromImage.Scale/(nChannel+1.0), 1.0, 40.0) / 40.0;
 			//auto t0 = stdc::steady_clock::now();
@@ -684,8 +699,9 @@ namespace Biscuit.winform {
 			return true;
 		}
 
-
 		void PaintGL(SharpGL.OpenGL gl) {
+			Debug.WriteLine("PaintGL");
+
 			if (m_img is null || m_img.Empty() || gl is null)
 				return;
 
@@ -694,12 +710,13 @@ namespace Biscuit.winform {
 
 			// Client Rect
 			CV.Rect rectClient = GetViewRect();
-			CV.Size sizeView = rectClient.Size;
-			gl.Viewport(0, 0, sizeView.Width, sizeView.Height);
+
+			gl.MakeCurrent();
+			gl.Viewport(0, 0, rectClient.Width, rectClient.Height);
 
 			gl.MatrixMode(OpenGL.GL_PROJECTION);     // Make a simple 2D projection on the entire window
 			gl.LoadIdentity();
-			gl.Ortho(0.0, sizeView.Width, sizeView.Height, 0.0, 0.0, 100.0);
+			gl.Ortho(0.0, rectClient.Width, rectClient.Height, 0.0, 0.0, 100.0);
 
 			gl.MatrixMode(OpenGL.GL_MODELVIEW);    // Set the matrix mode to object modeling
 			CV.Scalar cr = new();
@@ -710,21 +727,6 @@ namespace Biscuit.winform {
 			gl.ClearColor((float)(cr[0]/255.0), (float)(cr[1]/255.0), (float)(cr[2]/255.0), 1.0f);
 			gl.ClearDepth(0.0f);
 			gl.Clear(OpenGL.GL_COLOR_BUFFER_BIT | OpenGL.GL_DEPTH_BUFFER_BIT); // Clear the window
-
-			//auto* context = view->context();
-			//if (!context)
-			//	return;
-			//auto* surface = view->context()->surface();
-
-			//gtl::xFinalAction faSwapBuffer{[&]{
-			//	//OutputDebugStringA("Flush\n");
-			//	glFlush();
-			//	context->swapBuffers(surface);
-			//}};
-
-			////event.Skip();
-			//if (!view or !context)
-			//	return;
 
 			if (misc.IsRectEmpty(rectClient))
 				return;
@@ -790,7 +792,7 @@ namespace Biscuit.winform {
 						foreach (CV.Mat imgThumbnail in m_pyramid.imagesThumbnail) {
 							if (imgThumbnail.Cols < size.Width)
 								continue;
-							imgPyr = img;
+							imgPyr = imgThumbnail;
 							break;
 						}
 						m_pyramid.mtx.ReleaseMutex();
@@ -848,17 +850,14 @@ namespace Biscuit.winform {
 				gl.BlendFunc(OpenGL.GL_SRC_ALPHA, OpenGL.GL_ONE_MINUS_SRC_ALPHA);
 
 				gl.Enable(OpenGL.GL_TEXTURE_2D);
-				uint [] textures = new uint[2]{ 0, 0 };
+				int nTextures = m_mouse.bInSelectionMode || m_mouse.bRectSelected ? 2 : 1;
+				uint [] textures = new uint[nTextures];
+				textures.Initialize();
 				gl.GenTextures(textures.Length, textures);
 				if (textures[0] == 0) {
 					Debug.WriteLine("glGenTextures failed");
 					return;
 				}
-
-				//gtl::xFinalAction finalAction([&] {
-				//	glDisable(OpenGL.GL_TEXTURE_2D);
-				//	glDeleteTextures(std::size(textures), textures);
-				//});
 
 				// Use the shader program
 				if (m_glData.shaderProgram != 0) {
@@ -868,7 +867,7 @@ namespace Biscuit.winform {
 				PutMatAsTexture(textures[0], img, rcTarget.Width, rectTarget, rectClient);
 
 				// Draw Selection Rect
-				if (m_mouse.bInSelectionMode || m_mouse.bRectSelected) {
+				if (nTextures >= 2) {
 					CV.Rect rect = misc.Floor(misc.MakeRectFromPts(m_ctScreenFromImage.Trans(m_mouse.ptSel0), m_ctScreenFromImage.Trans(m_mouse.ptSel1)));
 					rect = misc.NormalizeRect(rect);
 					rect &= rectClient;
@@ -878,7 +877,7 @@ namespace Biscuit.winform {
 					}
 				}
 
-				gl.Disable(OpenGL.GL_TEXTURE_2D);
+				//gl.Disable(OpenGL.GL_TEXTURE_2D);
 				gl.DeleteTextures(textures.Length, textures);
 			}
 
@@ -894,8 +893,8 @@ namespace Biscuit.winform {
 
 			if (ui_cmbZoomMode.SelectedIndex != (int)eZoomMode) {
 				ui_cmbZoomMode.SelectedIndex = (int)eZoomMode;
-				// will be re-entered
-				return true;
+				//// will be re-entered
+				//return true;
 			}
 
 			UpdateCT(bCenter, eZoomMode);
@@ -981,7 +980,8 @@ namespace Biscuit.winform {
 				return false;
 			if (Registry.GetValue(m_strRegKey, "Settings", "") is string json) {
 				m_settings = JsonSerializer.Deserialize<sSettings>(json);
-			} else {
+			}
+			else {
 				return false;
 			}
 			return true;
@@ -1013,6 +1013,8 @@ namespace Biscuit.winform {
 			if (sender is xMatView view) {
 				return;
 			}
+			if (ui_cmbZoomMode.Items.Count == 0)
+				return;
 			SetZoomMode((eZOOM)ui_cmbZoomMode.SelectedIndex, false);
 		}
 
@@ -1076,6 +1078,7 @@ namespace Biscuit.winform {
 			{ CV.MatType.CV_32FC3,  new sImageFormat(3, OpenGL.GL_RGB,          OpenGL.GL_FLOAT) },
 			{ CV.MatType.CV_32FC4,  new sImageFormat(4, OpenGL.GL_RGBA,         OpenGL.GL_FLOAT) }
 		};
+
 		public static sImageFormat? GetGLImageFormatType(int type) {
 			if (s_mapImageFormat is null)
 				return null;
@@ -1085,7 +1088,167 @@ namespace Biscuit.winform {
 				return null;
 		}
 
-	}
+		private void ui_picture_Paint(object sender, PaintEventArgs evt) {
+			Debug.WriteLine("PictureBox");
 
+			if (m_img is null || m_img.Empty())
+				return;
+
+			// Client Rect
+			var rectClient = ui_picture.ClientRectangle;
+			if (rectClient.IsEmpty)
+				return;
+
+			var g = evt.Graphics;
+			var brushBkgnd = new SolidBrush(Color.FromArgb(255, m_settings.crBackground[2], m_settings.crBackground[1], m_settings.crBackground[0]));
+			g.FillRectangle(brushBkgnd, rectClient);
+
+			//==================
+			// Get Image - ROI
+			var ct = m_ctScreenFromImage;
+
+			// Position
+			CV.Rect rectImage = misc.Floor(misc.MakeRectFromPts(
+				ct.TransI(new CV.Point2d(rectClient.X, rectClient.Y)), ct.TransI(new CV.Point2d(rectClient.Right, rectClient.Bottom))));
+			rectImage = misc.NormalizeRect(rectImage);
+			misc.InflateRect(ref rectImage, 1, 1);
+			if (rectImage.X < 0)
+				rectImage.X = 0;
+			if (rectImage.Y < 0)
+				rectImage.Y = 0;
+			if (rectImage.Right >= m_img.Cols)
+				rectImage.Width = m_img.Cols - rectImage.X;
+			if (rectImage.Bottom >= m_img.Rows)
+				rectImage.Height = m_img.Rows - rectImage.Y;
+			if (misc.IsRectEmpty(rectImage))
+				return;
+
+			CV.Rect roi = rectImage;
+			CV.Rect rectTarget = misc.Floor(misc.MakeRectFromPts(ct.Trans(rectImage.TopLeft), ct.Trans(rectImage.BottomRight)));
+			rectTarget = misc.NormalizeRect(rectTarget);
+			if (rectTarget.Width == 0)
+				rectTarget.Width = 1;
+			if (rectTarget.Height == 0)
+				rectTarget.Height = 1;
+			if (!misc.IsROI_Valid(roi, m_img.Size()))
+				return;
+
+			// img (roi)
+			CV.Rect rcTarget = new CV.Rect(new CV.Point(), new CV.Size(rectTarget.Width, rectTarget.Height));
+			CV.Rect rcTargetC = rcTarget;   // 4 byte align
+			if ((rcTarget.Width*m_img.ElemSize()) % 4 != 0)
+				rcTargetC.Width = misc.AdjustAlign32(rcTargetC.Width);
+			// check target image size
+			if ((UInt64)rcTargetC.Width * (UInt64)rcTargetC.Height > (UInt64)(1ul *1024*1024*1024))
+				return;
+
+			CV.Mat img = new CV.Mat(rcTargetC.Size, m_img.Type());
+			//img = m_option.crBackground;
+			var eInterpolation = CV.InterpolationFlags.Linear;
+			try {
+				if (ct.Scale < 1.0) {
+					if (s_mapZoomOutInterpolation.ContainsKey(m_settings.eZoomOut)) {
+						eInterpolation = s_mapZoomOutInterpolation[m_settings.eZoomOut];
+					}
+
+					// resize from pyramid image
+					double dScale = ct.Scale;
+					CV.Size2d size = new (dScale*m_img.Cols, dScale*m_img.Rows);
+					CV.Mat? imgPyr = null;
+					//{
+					//	auto t = std::chrono::steady_clock::now();
+					//	OutputDebugStringA(std::format("=======================\n1 {}\n", std::chrono::duration_cast<std::chrono::milliseconds>(t-t0)).c_str());
+					//	t0 = t;
+					//}
+					{
+						m_pyramid.mtx.WaitOne();
+						foreach (CV.Mat imgThumbnail in m_pyramid.imagesThumbnail) {
+							if (imgThumbnail.Cols < size.Width)
+								continue;
+							imgPyr = imgThumbnail;
+							break;
+						}
+						m_pyramid.mtx.ReleaseMutex();
+					}
+					//{
+					//	auto t = std::chrono::steady_clock::now();
+					//	OutputDebugStringA(std::format("=======================\n2 {}\n", std::chrono::duration_cast<std::chrono::milliseconds>(t-t0)).c_str());
+					//	t0 = t;
+					//}
+					if (imgPyr is not null) {
+
+						// show wait cursor
+						Cursor.Current = Cursors.WaitCursor;
+
+						double scaleP = m_img.Cols < m_img.Rows ? (double)imgPyr.Rows / m_img.Rows : (double)imgPyr.Cols / m_img.Cols;
+						double scale = imgPyr.Cols < imgPyr.Rows ? (double)size.Height / imgPyr.Rows : (double)size.Width / imgPyr.Cols;
+						CV.Rect roiP = roi;
+						roiP.X = (int)(scaleP * roiP.X);
+						roiP.Y = (int)(scaleP * roiP.Y);
+						roiP.Width = (int)(scaleP * roiP.Width);
+						roiP.Height = (int)(scaleP * roiP.Height);
+						roiP = misc.GetSafeROI(roiP, imgPyr.Size());
+						if (!misc.IsRectEmpty(roiP)) {
+							CV.Mat imgSrc = imgPyr[roiP];
+							imgSrc.Resize(rcTarget.Size, 0.0, 0.0, eInterpolation).CopyTo(img[rcTarget]);
+						}
+					}
+				}
+				else if (ct.Scale > 1.0) {
+					if (s_mapZoomInInterpolation.ContainsKey(m_settings.eZoomIn)) {
+						eInterpolation = s_mapZoomInInterpolation[m_settings.eZoomIn];
+					}
+					CV.Mat imgSrc = m_img[roi];
+					imgSrc.Resize(rcTarget.Size, 0.0, 0.0, eInterpolation).CopyTo(img[rcTarget]);
+				}
+				else {
+					m_img[roi].CopyTo(img[rcTarget]);
+				}
+			}
+			catch (Exception e) {
+				Debug.WriteLine($"Exception:{e}\n");
+			}
+			//catch (...) {
+			//	//OutputDebugStringA("cv::.......\n");
+			//}
+
+			if (!img.Empty()) {
+				if (m_settings.bDrawPixelValue) {
+					xCoordTrans2d ctCanvas = new xCoordTrans2d(m_ctScreenFromImage);
+					ctCanvas.m_offset -= m_ctScreenFromImage.Trans(roi.TopLeft);
+					DrawPixelValue(ref img, m_img, roi, ctCanvas, 8);   // DPI...
+				}
+				PixelFormat pixelFormat = img.Type() == CV.MatType.CV_8UC1 ? PixelFormat.Format8bppIndexed :
+					img.Type() == CV.MatType.CV_8UC3 ? PixelFormat.Format24bppRgb:
+					img.Type() == CV.MatType.CV_8UC4 ? PixelFormat.Format32bppArgb : PixelFormat.Undefined;
+				if (pixelFormat == PixelFormat.Undefined)
+					return;
+				Bitmap bmp = new Bitmap(roi.Width, img.Rows, (int)img.Step(), pixelFormat, img.Data);
+
+				g.DrawImageUnscaled(bmp, rectClient);
+
+				// Draw Selection Rect
+				if (m_mouse.bInSelectionMode || m_mouse.bRectSelected) {
+					CV.Rect rectSelected = misc.Floor(misc.MakeRectFromPts(m_ctScreenFromImage.Trans(m_mouse.ptSel0), m_ctScreenFromImage.Trans(m_mouse.ptSel1)));
+					rectSelected = misc.NormalizeRect(rectSelected);
+					rectSelected = rectSelected.Intersect(Rect.FromLTRB(rectClient.Left, rectClient.Top, rectClient.Right, rectClient.Bottom));
+					if (!misc.IsRectEmpty(rectSelected)) {
+						CV.Mat rectangle = new(16, 16, CV.MatType.CV_8UC4, new CV.Scalar(255, 255, 127, 128));
+
+						//PutMatAsTexture(textures[1], rectangle, rectangle.Cols, rect, rectClient);
+					}
+				}
+
+			}
+
+		}
+
+		private void ui_picture_Resize(object sender, EventArgs e) {
+			UpdateCT();
+			UpdateScrollBars();
+			//UpdateView();
+			ui_picture.Invalidate();
+		}
+	}
 
 }

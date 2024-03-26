@@ -119,16 +119,16 @@ namespace Biscuit {
 			return true
 				&& (rect.Left >= 0)
 				&& (rect.Top >= 0)
-				&& ((sizeImage.Width < 0) || ((rect.Left < sizeImage.Width) && (rect.Right < sizeImage.Width) && (rect.Left < rect.Right)))
-				&& ((sizeImage.Height < 0) || ((rect.Top < sizeImage.Height) && (rect.Bottom < sizeImage.Height) && (rect.Top < rect.Bottom)))
+				&& ((sizeImage.Width < 0) || ((rect.Left < sizeImage.Width) && (rect.Right <= sizeImage.Width) && (rect.Left < rect.Right)))
+				&& ((sizeImage.Height < 0) || ((rect.Top < sizeImage.Height) && (rect.Bottom <= sizeImage.Height) && (rect.Top < rect.Bottom)))
 				;
 		}
 		public static bool IsROI_Valid(CV.Rect rect, CV.Size sizeImage) {
 			return true
 				&& (rect.Left >= 0)
 				&& (rect.Top >= 0)
-				&& ((sizeImage.Width < 0) || ((rect.Left < sizeImage.Width) && (rect.Right < sizeImage.Width) && (rect.Left < rect.Right)))
-				&& ((sizeImage.Height < 0) || ((rect.Top < sizeImage.Height) && (rect.Bottom < sizeImage.Height) && (rect.Top < rect.Bottom)))
+				&& ((sizeImage.Width < 0) || ((rect.Left < sizeImage.Width) && (rect.Right <= sizeImage.Width) && (rect.Left < rect.Right)))
+				&& ((sizeImage.Height < 0) || ((rect.Top < sizeImage.Height) && (rect.Bottom <= sizeImage.Height) && (rect.Top < rect.Bottom)))
 				;
 		}
 

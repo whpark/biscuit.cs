@@ -23,7 +23,7 @@
 		///  the contents of this method with the code editor.
 		/// </summary>
 		private void InitializeComponent() {
-			Biscuit.winform.xMatView.sSettings sSettings2 = new Biscuit.winform.xMatView.sSettings();
+			Biscuit.winform.xMatView.sSettings sSettings1 = new Biscuit.winform.xMatView.sSettings();
 			panelBottom = new System.Windows.Forms.Panel();
 			ui_view = new Biscuit.winform.xMatView();
 			panelBottom.SuspendLayout();
@@ -44,7 +44,7 @@
 			ui_view.AutoSizeMode = System.Windows.Forms.AutoSizeMode.GrowAndShrink;
 			ui_view.Location = new System.Drawing.Point(0, 0);
 			ui_view.Name = "ui_view";
-			ui_view.Settings = sSettings2;
+			ui_view.Settings = sSettings1;
 			ui_view.Size = new System.Drawing.Size(808, 424);
 			ui_view.TabIndex = 0;
 			// 

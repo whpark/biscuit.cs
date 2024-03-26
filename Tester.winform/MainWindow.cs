@@ -23,13 +23,20 @@ namespace Tester.winform {
 				System.IO.Directory.SetCurrentDirectory(dir);
 			}
 
-
 			InitializeComponent();
 
-			var mat = new CV.Mat(512, 512, CV.MatType.CV_8UC3, new CV.Scalar(0, 0, 0));
-			mat[mat.Rows/3*0, mat.Rows*1/3, 0, mat.Cols].SetTo(new CV.Scalar(255, 0, 0));
-			mat[mat.Rows/3*1, mat.Rows*2/3, 0, mat.Cols].SetTo(new CV.Scalar(0, 255, 0));
-			mat[mat.Rows/3*2, mat.Rows*3/3, 0, mat.Cols].SetTo(new CV.Scalar(0, 0, 255));
+			var mat = new CV.Mat(65536, 65536, CV.MatType.CV_8UC3, new CV.Scalar(0, 0, 0));
+			mat[mat.Rows/3*0, mat.Rows*1/3, mat.Cols*0/3, mat.Cols*1/3].SetTo(new CV.Scalar(255, 0, 0));
+			mat[mat.Rows/3*1, mat.Rows*2/3, mat.Cols*1/3, mat.Cols*2/3].SetTo(new CV.Scalar(0, 255, 0));
+			mat[mat.Rows/3*2, mat.Rows*3/3, mat.Cols*2/3, mat.Cols*3/3].SetTo(new CV.Scalar(0, 0, 255));
+			//for (int y = 0; y < mat.Rows; y++) {
+			//	for (int x = 0; x < mat.Cols; x++) {
+			//		ref Vec3b v = ref mat.At<CV.Vec3b>(y, x);
+			//		v[0] = (Byte)(y & 0xFF);
+			//		v[1] = (Byte)(x & 0xFF);
+			//		v[2] = (Byte)((x + y) & 0xFF);
+			//	}
+			//}
 			ui_view.SetImage(mat);
 		}
 

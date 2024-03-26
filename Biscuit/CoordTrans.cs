@@ -163,8 +163,8 @@ namespace Biscuit {
 		public xCoordTrans2d(xCoordTrans2d B) {
 			m_mat = new();
 			B.m_mat.CopyTo(m_mat);
-			m_origin = B.m_offset;
-			m_offset = B.m_origin;
+			m_origin = B.m_origin;
+			m_offset = B.m_offset;
 		}
 
 		public override CV.Point2d Trans(CV.Point2d pt) {

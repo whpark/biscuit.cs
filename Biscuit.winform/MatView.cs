@@ -20,10 +20,11 @@ namespace Biscuit.winform {
 
 	public partial class xMatView : UserControl {
 
-		private CV.Mat? m_img;
 		public CV.Mat? Image {
 			get => m_img;
 		}
+		public RegistryKey? Reg { get; set; }
+		public string RegKey { get; set; } = "MatView";    // Registry Key for saving settings
 
 		//----------------------------------------------------------
 		public enum eZOOM { none = -1, one2one, fit2window, fit2width, fit2height, mouse_wheel_locked, free };  // lock : 
@@ -41,24 +42,31 @@ namespace Biscuit.winform {
 			{eZOOM_OUT.area, CV.InterpolationFlags.Area},
 		};
 
-		[JsonConverter(typeof(JsonStringEnumConverter))]
+		//----------------------------------------------------------
+		private CV.Mat? m_img;
+
+		//----------------------------------------------------------
 		public struct sSettings {
-			public bool bZoomLock = false;                                 // if eZoom is NOT free, zoom is locked
-			public bool bPanningLock = true;                               // image can be moved only eZoom == free
-			public bool bExtendedPanning = true;                           // image can move out of screen
-			public bool bKeyboardNavigation = false;                       // page up/down, scroll down to next blank of image
-			public bool bDrawPixelValue = true;                            // draw pixel value on image
-			public bool bPyrImageDown = true;                              // build cache image for down sampling. (such as mipmap)
-			public double dPanningSpeed = 2.0;                             // Image Panning Speed. 1.0 is same with mouse move.
-			public int nScrollMargin = 5;                                  // bExtendedPanning, px margin to scroll
-			public uint tsScroll = 250;                                    // Smooth Scroll. duration (in ms)
-			public eZOOM_IN eZoomIn = eZOOM_IN.nearest;
-			public eZOOM_OUT eZoomOut = eZOOM_OUT.area;
-			public CV.Vec3b crBackground = new CV.Vec3b(161, 114, 230);    // rgb
+			public bool bZoomLock { get; set; } = false;                                 // if eZoom is NOT free, zoom is locked
+			public bool bPanningLock { get; set; } = true;                               // image can be moved only eZoom == free
+			public bool bExtendedPanning { get; set; } = true;                           // image can move out of screen
+			public bool bKeyboardNavigation { get; set; } = false;                       // page up/down, scroll down to next blank of image
+			public bool bDrawPixelValue { get; set; } = true;                            // draw pixel value on image
+			public bool bPyrImageDown { get; set; } = true;                              // build cache image for down sampling. (such as mipmap)
+			public double dPanningSpeed { get; set; } = 2.0;                             // Image Panning Speed. 1.0 is same with mouse move.
+			public int nScrollMargin { get; set; } = 5;                                  // bExtendedPanning, px margin to scroll
+			public uint tsScroll { get; set; } = 250;                                    // Smooth Scroll. duration (in ms)
+			public eZOOM_IN eZoomIn { get; set; } = eZOOM_IN.nearest;
+			public eZOOM_OUT eZoomOut { get; set; } = eZOOM_OUT.area;
+
+			[JsonIgnore]
+			public CV.Vec3b crBackground = new CV.Vec3b(161, 114, 230);                // rgb
+			public Byte crBackgroundR { get => crBackground[2]; set { crBackground[2] = (Byte)value; } }
+			public Byte crBackgroundG { get => crBackground[1]; set { crBackground[1] = (Byte)value; } }
+			public Byte crBackgroundB { get => crBackground[0]; set { crBackground[0] = (Byte)value; } }
 
 			public sSettings() { }
 		};
-		string m_strRegKey = "";    // Registry Key for saving settings
 		sSettings m_settings = new sSettings();
 
 		struct sScrollGeometry {
@@ -77,7 +85,9 @@ namespace Biscuit.winform {
 
 		};
 
-		CV.Mat m_imgDisplay = new();  // image for screen
+		/// <summary>
+		/// thumbnail pyramid
+		/// </summary>
 		struct sPyramid {
 
 			bool bStop = false;
@@ -214,6 +224,7 @@ namespace Biscuit.winform {
 					continue;
 				ui_cmbZoomMode.Items.Add(names[i]);
 			}
+			ui_cmbZoomMode.SelectedIndex = (int)m_eZoom;
 
 		}
 		CV.Rect GetViewRect() {
@@ -586,22 +597,36 @@ namespace Biscuit.winform {
 			UpdateView();
 		}
 
-		public bool LoadOption() {
-			if (m_strRegKey == "")
+		public bool LoadSettings() {
+			if (RegKey == "" || Reg is null)
 				return false;
-			if (Registry.GetValue(m_strRegKey, "Settings", "") is string json) {
-				m_settings = JsonSerializer.Deserialize<sSettings>(json);
-			}
-			else {
+			try {
+				var reg = Reg.CreateSubKey(RegKey);
+				if (reg.GetValue("Settings", "") is string json) {
+					if (json != "")
+						m_settings = JsonSerializer.Deserialize<sSettings>(json);
+				}
+				else {
+					return false;
+				}
+
+			} catch (Exception e) {
+				Debug.WriteLine(e.Message);
 				return false;
 			}
 			return true;
 		}
-		public bool SaveOption() {
-			if (m_strRegKey == "")
+		public bool SaveSettings() {
+			if (RegKey == "" || Reg is null)
 				return false;
-			string json = JsonSerializer.Serialize(m_settings);
-			Registry.SetValue(m_strRegKey, "Settings", json);
+			try {
+				string json = JsonSerializer.Serialize<sSettings>(m_settings);
+				var reg = Reg.CreateSubKey(RegKey);
+				reg.SetValue("Settings", json);
+			} catch (Exception e) {
+				Debug.WriteLine(e.Message);
+				return false;
+			}
 			return true;
 		}
 
@@ -890,10 +915,13 @@ namespace Biscuit.winform {
 				CV.Point ptAnchor = m_mouse.ptAnchor ?? new CV.Point(0, 0);
 				if (!m_settings.bPanningLock) {
 					switch (m_eZoom) {
-					case eZOOM.one2one: break;
-					case eZOOM.mouse_wheel_locked: break;
-					case eZOOM.free: break;
-					default :
+					case eZOOM.one2one:
+						break;
+					case eZOOM.mouse_wheel_locked:
+						break;
+					case eZOOM.free:
+						break;
+					default:
 						m_eZoom = eZOOM.free;
 						ui_cmbZoomMode.SelectedIndex = (int)m_eZoom;
 						break;
@@ -930,20 +958,15 @@ namespace Biscuit.winform {
 				status.Append($"[x{ptImage.X:#,###} y{ptImage.Y:#,###}]");
 
 				// image value
-				{
-					int nChannel = m_img.Channels();
-					if (ptImage.X >= 0 && ptImage.X < m_img.Cols && ptImage.Y >= 0 && ptImage.Y < m_img.Rows) {
-						int depth = m_img.Depth();
-						CV.Scalar [] cr = GetMatValue(m_img.Ptr(ptImage.Y), depth, nChannel, ptImage.X, ptImage.X+1);
-						if (cr is not null) {
-							status.Append($" [{cr[0][0]}");
-							for (int i = 1; i < nChannel; i++)
-								status.Append($",{cr[0][i]}");
-						}
+				int nChannel = m_img.Channels();
+				if (ptImage.X >= 0 && ptImage.X < m_img.Cols && ptImage.Y >= 0 && ptImage.Y < m_img.Rows) {
+					int depth = m_img.Depth();
+					CV.Scalar []? cr = GetMatValue(m_img.Ptr(ptImage.Y), depth, nChannel, ptImage.X, ptImage.X+1);
+					if (cr is not null) {
+						status.Append($" [{cr[0][0]}");
+						for (int i = 1; i < nChannel; i++)
+							status.Append($",{cr[0][i]}");
 						status.Append("]");
-					}
-					else {
-						status.Append(" []");
 					}
 				}
 
@@ -966,6 +989,7 @@ namespace Biscuit.winform {
 		private void ui_picture_MouseLeave(object sender, EventArgs e) {
 
 		}
+
 		private void ui_picture_MouseWheel(object sender, MouseEventArgs e) {
 			if (m_img is null || m_img.Empty())
 				return;
@@ -973,9 +997,19 @@ namespace Biscuit.winform {
 				return;
 			}
 			ZoomInOut(e.Delta, new CV.Point(e.Location.X, e.Location.Y), false);
-
 		}
 
+		private void ui_btnZoomIn_Click(object sender, EventArgs e) {
+			ZoomInOut(100, misc.CenterPoint(GetViewRect()), false);
+		}
+
+		private void ui_btnZoomOut_Click(object sender, EventArgs e) {
+			ZoomInOut(-100, misc.CenterPoint(GetViewRect()), false);
+		}
+
+		private void ui_btnZoomFit_Click(object sender, EventArgs e) {
+			SetZoomMode(eZOOM.fit2window, true);
+		}
 	}
 
 }

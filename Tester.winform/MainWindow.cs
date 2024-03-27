@@ -1,4 +1,5 @@
-﻿using OpenCvSharp;
+﻿using Microsoft.Win32;
+using OpenCvSharp;
 using System;
 using System.Collections.Generic;
 using System.ComponentModel;
@@ -25,7 +26,11 @@ namespace Tester.winform {
 
 			InitializeComponent();
 
-			var mat = new CV.Mat(65536, 65536, CV.MatType.CV_8UC3, new CV.Scalar(0, 0, 0));
+			ui_view.Reg = Registry.CurrentUser.CreateSubKey("Software\\Biscuit.cs\\Biscuit_Tester_Winform");
+			ui_view.RegKey = "MainView";
+			ui_view.LoadSettings();
+			//var mat = new CV.Mat(65536, 65536, CV.MatType.CV_8UC3, new CV.Scalar(0, 0, 0));
+			var mat = new CV.Mat(600, 800, CV.MatType.CV_8UC3, new CV.Scalar(0, 0, 0));
 			mat[mat.Rows/3*0, mat.Rows*1/3, mat.Cols*0/3, mat.Cols*1/3].SetTo(new CV.Scalar(255, 0, 0));
 			mat[mat.Rows/3*1, mat.Rows*2/3, mat.Cols*1/3, mat.Cols*2/3].SetTo(new CV.Scalar(0, 255, 0));
 			mat[mat.Rows/3*2, mat.Rows*3/3, mat.Cols*2/3, mat.Cols*3/3].SetTo(new CV.Scalar(0, 0, 255));

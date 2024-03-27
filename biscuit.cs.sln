@@ -1,4 +1,4 @@
-﻿
+
 Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 17
 VisualStudioVersion = 17.9.34518.117
@@ -15,7 +15,7 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Biscuit.clr", "Biscuit.clr\
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Tester.winform", "Tester.winform\Tester.winform.csproj", "{AF42887E-51D7-4845-B031-46D630547DDF}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Biscuit.winform", "Biscuit.winform\Biscuit.winform.csproj", "{68A3BED3-DCD2-432F-ADCC-07F5C918901A}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Biscuit.winform", "Biscuit.winform\Biscuit.winform.csproj", "{68A3BED3-DCD2-432F-ADCC-07F5C918901A}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

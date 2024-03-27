@@ -610,7 +610,8 @@ namespace Biscuit.winform {
 					return false;
 				}
 
-			} catch (Exception e) {
+			}
+			catch (Exception e) {
 				Debug.WriteLine(e.Message);
 				return false;
 			}
@@ -623,7 +624,8 @@ namespace Biscuit.winform {
 				string json = JsonSerializer.Serialize<sSettings>(m_settings);
 				var reg = Reg.CreateSubKey(RegKey);
 				reg.SetValue("Settings", json);
-			} catch (Exception e) {
+			}
+			catch (Exception e) {
 				Debug.WriteLine(e.Message);
 				return false;
 			}
@@ -798,9 +800,10 @@ namespace Biscuit.winform {
 					rectSelected = misc.NormalizeRect(rectSelected);
 					rectSelected = rectSelected.Intersect(Rect.FromLTRB(rectClient.Left, rectClient.Top, rectClient.Right, rectClient.Bottom));
 					if (!misc.IsRectEmpty(rectSelected)) {
-						CV.Mat rectangle = new(16, 16, CV.MatType.CV_8UC4, new CV.Scalar(255, 255, 127, 128));
-
-						//PutMatAsTexture(textures[1], rectangle, rectangle.Cols, rect, rectClient);
+						Pen penOuter = new Pen(Color.Gray, 5);
+						Pen pen = new Pen(Color.Red, 1);
+						g.DrawRectangle(penOuter, rectSelected.Left, rectSelected.Top, rectSelected.Width, rectSelected.Height);
+						g.DrawRectangle(pen, rectSelected.Left, rectSelected.Top, rectSelected.Width, rectSelected.Height);
 					}
 				}
 
@@ -1009,6 +1012,18 @@ namespace Biscuit.winform {
 
 		private void ui_btnZoomFit_Click(object sender, EventArgs e) {
 			SetZoomMode(eZOOM.fit2window, true);
+		}
+
+		private void ui_btnSettings_Click(object sender, EventArgs e) {
+			MatView_SettingsDlg dlg = new(m_settings);
+			if (dlg.ShowDialog() == DialogResult.OK) {
+				m_settings = dlg.m_settings;
+				SaveSettings();
+
+				UpdateCT(false, eZOOM.none);
+				UpdateScrollBars();
+				UpdateView();
+			}
 		}
 	}
 

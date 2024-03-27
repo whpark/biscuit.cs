@@ -50,6 +50,7 @@ namespace Biscuit.winform {
 			ui_chkShowToolbar.Size = new Size(16, 21);
 			ui_chkShowToolbar.TabIndex = 0;
 			ui_chkShowToolbar.UseVisualStyleBackColor = true;
+			ui_chkShowToolbar.Visible = false;
 			// 
 			// ui_cmbZoomMode
 			// 
@@ -89,6 +90,7 @@ namespace Biscuit.winform {
 			ui_btnSettings.TabIndex = 4;
 			ui_btnSettings.Text = "...";
 			ui_btnSettings.UseVisualStyleBackColor = true;
+			ui_btnSettings.Click += ui_btnSettings_Click;
 			// 
 			// ui_btnZoomFit
 			// 

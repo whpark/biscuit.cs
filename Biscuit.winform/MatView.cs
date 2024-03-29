@@ -951,13 +951,22 @@ namespace Biscuit.winform {
 			}
 
 			// status
-			{
-				var ptImage = misc.Floor(m_ctScreenFromImage.TransI(ptView));
-				StringBuilder status = new();
+			UpdateInfo(ptView);
 
-				// print ptImage.x and ptImage.y with thousand comma separated
-				if (!m_img.Empty())
-					status.Append($"(w{m_img.Cols:#,###} h{m_img.Rows:#,###}) ");
+		}
+
+		private void UpdateInfo(Point2d? ptView) {
+			if (m_img is null || m_img.Empty())
+				return;	
+
+			StringBuilder status = new();
+
+			if (!m_img.Empty())
+				status.Append($"(w{m_img.Cols:#,###} h{m_img.Rows:#,###}) ");
+
+			// print ptImage.x and ptImage.y with thousand comma separated
+			if (ptView is Point2d pt) {
+				var ptImage = misc.Floor(m_ctScreenFromImage.TransI(pt));
 				status.Append($"[x{ptImage.X:#,###} y{ptImage.Y:#,###}]");
 
 				// image value
@@ -972,25 +981,24 @@ namespace Biscuit.winform {
 						status.Append("]");
 					}
 				}
-
-				// Selection
-				if (m_mouse.bInSelectionMode || m_mouse.bRectSelected) {
-					CV.Point2d size = m_mouse.ptSel1 - m_mouse.ptSel0;
-					status.Append($" (x{m_mouse.ptSel0.X:#,###} y{m_mouse.ptSel0.Y:#,###} w{Math.Abs(size.X)} h{Math.Abs(size.Y)})");
-				}
-
-				string str = status.ToString();
-				if (str != ui_txtInfo.Text) {
-					ui_txtInfo.Text = str;
-					ui_txtInfo.SelectionStart = 0;
-					ui_txtInfo.SelectionLength = 0;
-				}
 			}
 
+			// Selection
+			if (m_mouse.bInSelectionMode || m_mouse.bRectSelected) {
+				CV.Point2d size = m_mouse.ptSel1 - m_mouse.ptSel0;
+				status.Append($" (x{m_mouse.ptSel0.X:#,###} y{m_mouse.ptSel0.Y:#,###} w{Math.Abs(size.X)} h{Math.Abs(size.Y)})");
+			}
+
+			string str = status.ToString();
+			if (str != ui_txtInfo.Text) {
+				ui_txtInfo.Text = str;
+				ui_txtInfo.SelectionStart = 0;
+				ui_txtInfo.SelectionLength = 0;
+			}
 		}
 
 		private void ui_picture_MouseLeave(object sender, EventArgs e) {
-
+			UpdateInfo(null);
 		}
 
 		private void ui_picture_MouseWheel(object sender, MouseEventArgs e) {

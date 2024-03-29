@@ -1,4 +1,5 @@
-﻿using Microsoft.Win32;
+﻿using Biscuit.winform;
+using Microsoft.Win32;
 using OpenCvSharp;
 using System;
 using System.Collections.Generic;
@@ -30,10 +31,10 @@ namespace Tester.winform {
 			ui_view.RegKey = "MainView";
 			ui_view.LoadSettings();
 			//var mat = new CV.Mat(65536, 65536, CV.MatType.CV_8UC3, new CV.Scalar(0, 0, 0));
-			var mat = new CV.Mat(600, 800, CV.MatType.CV_8UC3, new CV.Scalar(0, 0, 0));
-			mat[mat.Rows/3*0, mat.Rows*1/3, mat.Cols*0/3, mat.Cols*1/3].SetTo(new CV.Scalar(255, 0, 0));
-			mat[mat.Rows/3*1, mat.Rows*2/3, mat.Cols*1/3, mat.Cols*2/3].SetTo(new CV.Scalar(0, 255, 0));
-			mat[mat.Rows/3*2, mat.Rows*3/3, mat.Cols*2/3, mat.Cols*3/3].SetTo(new CV.Scalar(0, 0, 255));
+			var mat = new CV.Mat(600, 800, CV.MatType.CV_8UC1, new CV.Scalar(0, 0, 0));
+			//mat[mat.Rows/3*0, mat.Rows*1/3, mat.Cols*0/3, mat.Cols*1/3].SetTo(new CV.Scalar(255, 0, 0));
+			//mat[mat.Rows/3*1, mat.Rows*2/3, mat.Cols*1/3, mat.Cols*2/3].SetTo(new CV.Scalar(0, 255, 0));
+			//mat[mat.Rows/3*2, mat.Rows*3/3, mat.Cols*2/3, mat.Cols*3/3].SetTo(new CV.Scalar(0, 0, 255));
 			//for (int y = 0; y < mat.Rows; y++) {
 			//	for (int x = 0; x < mat.Cols; x++) {
 			//		ref Vec3b v = ref mat.At<CV.Vec3b>(y, x);
@@ -42,7 +43,17 @@ namespace Tester.winform {
 			//		v[2] = (Byte)((x + y) & 0xFF);
 			//	}
 			//}
-			ui_view.SetImage(mat);
+			for (int y = 0; y < mat.Rows; y++) {
+				for (int x = 0; x < mat.Cols; x++) {
+					mat.At<Byte>(y, x) = (Byte)((x + y) & 0xFF);
+				}
+			}
+			CV.Mat palette = CV.Mat.Zeros(256, 1, CV.MatType.CV_8UC3);
+			for (int i = 0; i < 256; i++) {
+				palette.At<CV.Vec3b>(i, 0) = new CV.Vec3b((byte)0, (byte)i, (byte)i);
+			}
+			ui_view.SetImage(mat, true, xMatView.eZOOM.fit2window, false);
+			ui_view.SetPalette(palette);
 		}
 
 	}

@@ -44,6 +44,7 @@ namespace Biscuit.winform {
 
 		//----------------------------------------------------------
 		private CV.Mat? m_img;
+		private CV.Mat? m_palette;	// CV_8UC1 or CV_8UC3, 256 entity palette
 
 		//----------------------------------------------------------
 		public struct sSettings {
@@ -97,7 +98,7 @@ namespace Biscuit.winform {
 			Thread? threadPyramidMaker = null;
 
 			public sPyramid() { }
-			public bool StartMakePyramids(CV.Mat src, UInt64 minImageArea = 3000*2000) {
+			public bool StartMakePyramids(CV.Mat src, bool bNearest, UInt64 minImageArea = 3000*2000) {
 				var self = this;
 				if (self.threadPyramidMaker is not null) {
 					self.bStop = true;
@@ -117,7 +118,12 @@ namespace Biscuit.winform {
 					}
 					while (!self.bStop && ((UInt64)img.Cols*(UInt64)img.Rows > minImageArea)) {
 						CV.Mat imgPyr = new();
-						CV.Cv2.PyrDown(img, imgPyr);
+						if (bNearest)
+							CV.Cv2.Resize(img, imgPyr, new CV.Size(img.Cols/2, img.Rows/2), 0, 0, CV.InterpolationFlags.Nearest);
+						else
+							CV.Cv2.PyrDown(img, imgPyr);
+
+						// add to list
 						{
 							self.mtx.WaitOne();
 							self.imagesThumbnail.Insert(0, imgPyr);
@@ -184,7 +190,7 @@ namespace Biscuit.winform {
 			InitializeComponent();
 		}
 
-		public bool SetImage(CV.Mat img, bool bCenter = true, eZOOM eZoomMode = eZOOM.none, bool bCopy = false) {
+		public bool SetImage(CV.Mat img, bool bCenter = true, eZOOM eZoomMode = eZOOM.none, bool bCopy = false, CV.Mat? palette = null) {
 			//wxBusyCursor wc;
 
 			// original image
@@ -195,23 +201,46 @@ namespace Biscuit.winform {
 			else
 				m_img = img;
 
-			m_pyramid.StartMakePyramids(m_img);
+			SetPalette(palette, false);    // also Invalidates
+
+			m_pyramid.StartMakePyramids(m_img, m_palette is not null);
 
 			m_mouse.Clear();
 			m_smooth_scroll.Clear();
 
 			if (eZoomMode != eZOOM.none) {
-				ui_cmbZoomMode.SelectedIndex = (int)eZoomMode;
+				if (ui_cmbZoomMode.Items.Count > (int)eZoomMode)
+					ui_cmbZoomMode.SelectedIndex = (int)eZoomMode;
 				SetZoomMode(eZoomMode, false);
 			}
 			else {
 				UpdateCT(bCenter);
 				UpdateScrollBars();
-				//m_view->Refresh();
 				UpdateView();
 			}
 
 			return true;
+		}
+
+		public bool SetPalette(Mat? palette, bool bUpdateView = false) {
+			bool bCopied = false;
+			if (true
+				&& palette is not null
+				&& (palette.Type() == CV.MatType.CV_8UC1 || palette.Type() == CV.MatType.CV_8UC3)
+				&& (palette.Rows == 256 && palette.Cols == 1)
+				) {
+				m_palette = new();
+				palette.CopyTo(m_palette);
+				bCopied = true;
+			}
+			else {
+				m_palette = null;
+			}
+
+			if (bUpdateView)
+				UpdateView();
+
+			return bCopied;
 		}
 
 		private void MatView_Load(object sender, EventArgs e) {
@@ -637,7 +666,7 @@ namespace Biscuit.winform {
 			set {
 				m_settings = value;
 
-				m_pyramid.StartMakePyramids(m_img);
+				m_pyramid.StartMakePyramids(m_img, m_palette is not null);
 
 				UpdateCT(false, eZOOM.none);
 				UpdateScrollBars();
@@ -781,12 +810,18 @@ namespace Biscuit.winform {
 			//}
 
 			if (!img.Empty()) {
+				if (m_palette is not null) {
+					CV.Cv2.ApplyColorMap(img, img, m_palette);
+				}
+				if (img.Channels() == 1) {	// PixelFormat does not support 1 channel image
+					CV.Cv2.CvtColor(img, img, CV.ColorConversionCodes.GRAY2BGR);
+				}
 				if (m_settings.bDrawPixelValue) {
 					xCoordTrans2d ctCanvas = new xCoordTrans2d(m_ctScreenFromImage);
 					ctCanvas.m_offset -= m_ctScreenFromImage.Trans(roi.TopLeft);
 					DrawPixelValue(ref img, m_img, roi, ctCanvas, 8);   // DPI...
 				}
-				PixelFormat pixelFormat = img.Type() == CV.MatType.CV_8UC1 ? PixelFormat.Format8bppIndexed :
+				PixelFormat pixelFormat = 
 					img.Type() == CV.MatType.CV_8UC3 ? PixelFormat.Format24bppRgb:
 					img.Type() == CV.MatType.CV_8UC4 ? PixelFormat.Format32bppArgb : PixelFormat.Undefined;
 				if (pixelFormat == PixelFormat.Undefined)

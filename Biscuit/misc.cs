@@ -232,13 +232,13 @@ namespace Biscuit {
 				GetMatValue<char>(ptr, channel, col, ref v);
 				break;
 			case CV.MatType.CV_16U:
-				GetMatValue<UInt16>(ptr, channel, col, ref v);
+				GetMatValue<ushort>(ptr, channel, col, ref v);
 				break;
 			case CV.MatType.CV_16S:
-				GetMatValue<Int16>(ptr, channel, col, ref v);
+				GetMatValue<short>(ptr, channel, col, ref v);
 				break;
 			case CV.MatType.CV_32S:
-				GetMatValue<Int32>(ptr, channel, col, ref v);
+				GetMatValue<int>(ptr, channel, col, ref v);
 				break;
 			case CV.MatType.CV_32F:
 				GetMatValue<float>(ptr, channel, col, ref v);

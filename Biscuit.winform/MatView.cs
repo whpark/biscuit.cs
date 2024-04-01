@@ -62,9 +62,9 @@ namespace Biscuit.winform {
 
 			[JsonIgnore]
 			public CV.Vec3b crBackground = new CV.Vec3b(161, 114, 230);                // rgb
-			public Byte crBackgroundR { get => crBackground[2]; set { crBackground[2] = (Byte)value; } }
-			public Byte crBackgroundG { get => crBackground[1]; set { crBackground[1] = (Byte)value; } }
-			public Byte crBackgroundB { get => crBackground[0]; set { crBackground[0] = (Byte)value; } }
+			public byte crBackgroundR { get => crBackground[2]; set { crBackground[2] = (byte)value; } }
+			public byte crBackgroundG { get => crBackground[1]; set { crBackground[1] = (byte)value; } }
+			public byte crBackgroundB { get => crBackground[0]; set { crBackground[0] = (byte)value; } }
 
 			public sSettings() { }
 		};
@@ -98,7 +98,7 @@ namespace Biscuit.winform {
 			Thread? threadPyramidMaker = null;
 
 			public sPyramid() { }
-			public bool StartMakePyramids(CV.Mat src, bool bNearest, UInt64 minImageArea = 3000*2000) {
+			public bool StartMakePyramids(CV.Mat src, bool bNearest, ulong minImageArea = 3000*2000) {
 				var self = this;
 				if (self.threadPyramidMaker is not null) {
 					self.bStop = true;
@@ -116,7 +116,7 @@ namespace Biscuit.winform {
 						self.imagesThumbnail.Add(img);
 						self.mtx.ReleaseMutex();
 					}
-					while (!self.bStop && ((UInt64)img.Cols*(UInt64)img.Rows > minImageArea)) {
+					while (!self.bStop && ((ulong)img.Cols*(ulong)img.Rows > minImageArea)) {
 						CV.Mat imgPyr = new();
 						if (bNearest)
 							CV.Cv2.Resize(img, imgPyr, new CV.Size(img.Cols/2, img.Rows/2), 0, 0, CV.InterpolationFlags.Nearest);
@@ -464,15 +464,15 @@ namespace Biscuit.winform {
 		public static CV.Scalar[]? GetMatValue(IntPtr ptr, int depth, int channel, int col0, int col1) {
 			switch (depth) {
 			case CV.MatType.CV_8U:
-				return GetValue<Byte>(ptr, depth, channel, col0, col1);
+				return GetValue<byte>(ptr, depth, channel, col0, col1);
 			case CV.MatType.CV_8S:
-				return GetValue<SByte>(ptr, depth, channel, col0, col1);
+				return GetValue<sbyte>(ptr, depth, channel, col0, col1);
 			case CV.MatType.CV_16U:
-				return GetValue<UInt16>(ptr, depth, channel, col0, col1);
+				return GetValue<ushort>(ptr, depth, channel, col0, col1);
 			case CV.MatType.CV_16S:
-				return GetValue<Int16>(ptr, depth, channel, col0, col1);
+				return GetValue<short>(ptr, depth, channel, col0, col1);
 			case CV.MatType.CV_32S:
-				return GetValue<Int32>(ptr, depth, channel, col0, col1);
+				return GetValue<int>(ptr, depth, channel, col0, col1);
 			case CV.MatType.CV_32F:
 				return GetValue<float>(ptr, depth, channel, col0, col1);
 			case CV.MatType.CV_64F:
@@ -736,7 +736,7 @@ namespace Biscuit.winform {
 			if ((rcTarget.Width*m_img.ElemSize()) % 4 != 0)
 				rcTargetC.Width = misc.AdjustAlign32(rcTargetC.Width);
 			// check target image size
-			if ((UInt64)rcTargetC.Width * (UInt64)rcTargetC.Height > (UInt64)(1ul *1024*1024*1024))
+			if ((ulong)rcTargetC.Width * (ulong)rcTargetC.Height > (1ul *1024ul*1024ul*1024ul))
 				return;
 
 			CV.Mat img = new CV.Mat(rcTargetC.Size, m_img.Type());

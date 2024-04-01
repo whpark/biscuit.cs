@@ -15,10 +15,10 @@ using System.Text.RegularExpressions;
 namespace Biscuit {
 	using map_t = System.Collections.Generic.Dictionary<string, xLazyProfile>;
 
-	public class xLazyProfile {
-		private static bool bIGNORE_CASE = true;
-		private static bool bTREAT_BOOL_AS_INT = true;
-		private static bool bSTRING_BE_QUOTED = true;
+	public class xLazyProfile : IEquatable<xLazyProfile> {
+		public bool bIGNORE_CASE = true;
+		public bool bTREAT_BOOL_AS_INT = true;
+		public bool bSTRING_BE_QUOTED = true;
 
 		//regex for section name
 		// key : any trimmed(whitespace) chars quoted by bracket "[]", ex) [ HeadDriver1:1 ]
@@ -45,13 +45,21 @@ namespace Biscuit {
 			m_sections = new map_t(B.m_sections);
 			m_items = new List<string>(B.m_items);
 			m_line = new string(B.m_line);
+
+			bIGNORE_CASE = B.bIGNORE_CASE;
+			bTREAT_BOOL_AS_INT = B.bTREAT_BOOL_AS_INT;
+			bSTRING_BE_QUOTED = B.bSTRING_BE_QUOTED;
+
 		}
 
-		bool Equals(xLazyProfile B) {
-
+		public bool Equals(xLazyProfile B) {
 			return m_sections == B.m_sections
 				&& m_items.SequenceEqual(B.m_items)
-				&& m_line == B.m_line;
+				&& m_line == B.m_line
+				&& bIGNORE_CASE == B.bIGNORE_CASE
+				&& bTREAT_BOOL_AS_INT == B.bTREAT_BOOL_AS_INT
+				&& bSTRING_BE_QUOTED == B.bSTRING_BE_QUOTED;
+				;
 		}
 
 		// section

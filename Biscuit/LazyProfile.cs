@@ -204,10 +204,20 @@ namespace Biscuit {
 
 		public List<string> GetRawItems() => m_items;
 
+		public List<(string key, string value)> GetItemsView() {
+			List<(string key, string value)> items = new();
+			foreach (var item in m_items) {
+				var match = s_reItem.Match(item);
+				if (!match.Success)
+					continue;
+				// whole, key, '=', value, comment
+				items.Add((match.Groups[1].Value, match.Groups[3].Value));
+			}
+			return items;
+		}
+
 		public void SetItemComment(string key, string comment) {
-			string value = GetItemValueRaw(key);
-			if (value is null)
-				value = "";
+			string value = GetItemValueRaw(key) ?? "";
 			SetItemValueRaw(key, value, comment);
 		}
 

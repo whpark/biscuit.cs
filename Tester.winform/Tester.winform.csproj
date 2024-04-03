@@ -5,6 +5,7 @@
     <TargetFramework>net8.0-windows</TargetFramework>
     <Nullable>enable</Nullable>
     <UseWindowsForms>true</UseWindowsForms>
+    <Platforms>AnyCPU;x64</Platforms>
     <!--<ApplicationHighDpiMode>SystemAware</ApplicationHighDpiMode>
     <ForceDesignerDpiUnaware>true</ForceDesignerDpiUnaware>-->
   </PropertyGroup>

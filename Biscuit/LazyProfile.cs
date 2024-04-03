@@ -89,7 +89,7 @@ namespace Biscuit {
 		}
 
 		// getter
-		public T GetItemValue<T>(string key, T vDefault) where T : unmanaged {
+		public T GetItemValue<T>(string key, T vDefault) {
 			if (GetItemValueRaw(key) is string sv) {
 				sv = sv.Trim();
 				T t = vDefault;
@@ -108,7 +108,7 @@ namespace Biscuit {
 					float => (T)(object)float.Parse(sv),
 					double => (T)(object)double.Parse(sv),
 					//string => sv,
-					_ => vDefault,
+					_ => throw new NotImplementedException(),
 				};
 			}
 			else {
@@ -184,7 +184,7 @@ namespace Biscuit {
 			}
 		}
 
-		public void SetItemValue<T>(string key, T value) where T : unmanaged {
+		public void SetItemValue<T>(string key, T value) {
 			if (value is bool v && bTREAT_BOOL_AS_INT) {
 				SetItemValueRaw(key, v ? "1" : "0");
 			}
@@ -234,7 +234,7 @@ namespace Biscuit {
 		}
 
 		/// @brief Sync
-		public void SyncItemValue<T>(bool bToProfile, string key, ref T value) where T : unmanaged {
+		public void SyncItemValue<T>(bool bToProfile, string key, ref T value) {
 			if (bToProfile) {
 				SetItemValue(key, value);
 			}

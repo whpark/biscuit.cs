@@ -32,14 +32,14 @@ namespace Biscuit {
 		// comment : any string after ';', including space.
 		protected static readonly Regex s_reItem = new Regex("\\s*([\\w\\s]*\\w+)\\s*(=)\\s*(\"(?:[^\\\"]|\\.)*\"|[^;\\n]*)\\s*[^;]*(;.*)?", RegexOptions.Compiled);
 
-		private map_t m_sections;   // child sections
-		private List<string> m_items;
-		private string m_line;              // anything after section name
+		private map_t m_sections = new();			// child sections
+		private List<string> m_items = new();
+		private string m_line = "";					// anything after section name
 
-		public xLazyProfile() {
-			m_sections = new();
-			m_items = new();
-			m_line = "";
+		public xLazyProfile(bool bIGNORE_CASE, bool bTREAT_BOOL_AS_INT, bool bSTRING_BE_QUOTED) {
+			this.bIGNORE_CASE = bIGNORE_CASE;
+			this.bTREAT_BOOL_AS_INT = bTREAT_BOOL_AS_INT;
+			this.bSTRING_BE_QUOTED = bSTRING_BE_QUOTED;
 		}
 		public xLazyProfile(xLazyProfile B) {
 			m_sections = new map_t(B.m_sections);
@@ -67,8 +67,9 @@ namespace Biscuit {
 			get {
 				if (m_sections.ContainsKey(key))
 					return m_sections[key];
-				else
-					return m_sections[key] = new xLazyProfile();
+				else {
+					return m_sections[key] = new xLazyProfile(bIGNORE_CASE, bTREAT_BOOL_AS_INT, bSTRING_BE_QUOTED);
+				}
 			}
 			set {
 				m_sections[key] = value;
@@ -107,7 +108,7 @@ namespace Biscuit {
 					uint => (T)(object)uint.Parse(sv),
 					float => (T)(object)float.Parse(sv),
 					double => (T)(object)double.Parse(sv),
-					//string => sv,
+					string => (T)(object)sv,
 					_ => throw new NotImplementedException(),
 				};
 			}
@@ -267,7 +268,7 @@ namespace Biscuit {
 
 		public bool Load(string path) {
 			Clear();
-			m_sections.Add("", new xLazyProfile());
+			m_sections.Add("", new xLazyProfile(bIGNORE_CASE, bTREAT_BOOL_AS_INT, bSTRING_BE_QUOTED));
 			if (!File.Exists(path))
 				return false;
 
@@ -283,7 +284,7 @@ namespace Biscuit {
 					string key = m.Groups[1].Value;
 					if (key == "")
 						continue;
-					section = new xLazyProfile();
+					section = new xLazyProfile(bIGNORE_CASE, bTREAT_BOOL_AS_INT, bSTRING_BE_QUOTED);
 					m_sections.Add(key, section);
 					m_sections[key].m_line = str;
 				}

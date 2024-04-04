@@ -16,9 +16,29 @@ namespace Biscuit {
 	using map_t = System.Collections.Generic.Dictionary<string, xLazyProfile>;
 
 	public class xLazyProfile : IEquatable<xLazyProfile> {
-		public bool bIGNORE_CASE = true;
-		public bool bTREAT_BOOL_AS_INT = true;
-		public bool bSTRING_BE_QUOTED = true;
+		public struct sConfig : IEquatable<sConfig> {
+			public bool bIGNORE_CASE = true;
+			public bool bTREAT_BOOL_AS_INT = true;
+			public bool bSTRING_BE_QUOTED = true;
+
+			public sConfig() { }
+			public sConfig(bool bIGNORE_CASE, bool bTREAT_BOOL_AS_INT, bool bSTRING_BE_QUOTED) {
+				this.bIGNORE_CASE = bIGNORE_CASE;
+				this.bTREAT_BOOL_AS_INT = bTREAT_BOOL_AS_INT;
+				this.bSTRING_BE_QUOTED = bSTRING_BE_QUOTED;
+			}
+			public sConfig(sConfig B) {
+				bIGNORE_CASE = B.bIGNORE_CASE;
+				bTREAT_BOOL_AS_INT = B.bTREAT_BOOL_AS_INT;
+				bSTRING_BE_QUOTED = B.bSTRING_BE_QUOTED;
+			}
+			bool IEquatable<sConfig>.Equals(sConfig B) {
+				return bIGNORE_CASE == B.bIGNORE_CASE
+					&& bTREAT_BOOL_AS_INT == B.bTREAT_BOOL_AS_INT
+					&& bSTRING_BE_QUOTED == B.bSTRING_BE_QUOTED;
+			}
+		}
+		public sConfig m_config = new();
 
 		//regex for section name
 		// key : any trimmed(whitespace) chars quoted by bracket "[]", ex) [ HeadDriver1:1 ]
@@ -36,29 +56,23 @@ namespace Biscuit {
 		private List<string> m_items = new();
 		private string m_line = "";					// anything after section name
 
-		public xLazyProfile(bool bIGNORE_CASE, bool bTREAT_BOOL_AS_INT, bool bSTRING_BE_QUOTED) {
-			this.bIGNORE_CASE = bIGNORE_CASE;
-			this.bTREAT_BOOL_AS_INT = bTREAT_BOOL_AS_INT;
-			this.bSTRING_BE_QUOTED = bSTRING_BE_QUOTED;
+		public xLazyProfile() { }
+		public xLazyProfile(sConfig config) {
+			m_config = new sConfig(config);
 		}
 		public xLazyProfile(xLazyProfile B) {
 			m_sections = new map_t(B.m_sections);
 			m_items = new List<string>(B.m_items);
 			m_line = new string(B.m_line);
 
-			bIGNORE_CASE = B.bIGNORE_CASE;
-			bTREAT_BOOL_AS_INT = B.bTREAT_BOOL_AS_INT;
-			bSTRING_BE_QUOTED = B.bSTRING_BE_QUOTED;
-
+			m_config = B.m_config;
 		}
 
 		public bool Equals(xLazyProfile B) {
 			return m_sections == B.m_sections
 				&& m_items.SequenceEqual(B.m_items)
 				&& m_line == B.m_line
-				&& bIGNORE_CASE == B.bIGNORE_CASE
-				&& bTREAT_BOOL_AS_INT == B.bTREAT_BOOL_AS_INT
-				&& bSTRING_BE_QUOTED == B.bSTRING_BE_QUOTED;
+				&& m_config.Equals(B.m_config)
 				;
 		}
 
@@ -68,7 +82,7 @@ namespace Biscuit {
 				if (m_sections.ContainsKey(key))
 					return m_sections[key];
 				else {
-					return m_sections[key] = new xLazyProfile(bIGNORE_CASE, bTREAT_BOOL_AS_INT, bSTRING_BE_QUOTED);
+					return m_sections[key] = new xLazyProfile(m_config);
 				}
 			}
 			set {
@@ -83,7 +97,7 @@ namespace Biscuit {
 				if (!match.Success)
 					continue;
 				// whole, key, '=', value, comments
-				if (string.Compare(match.Groups[1].Value, key, bIGNORE_CASE) == 0)
+				if (string.Compare(match.Groups[1].Value, key, m_config.bIGNORE_CASE) == 0)
 					return match.Groups[3].Value;
 			}
 			return null;
@@ -94,7 +108,7 @@ namespace Biscuit {
 			if (GetItemValueRaw(key) is string sv) {
 				sv = sv.Trim();
 				T t = vDefault;
-				if (t is bool && bTREAT_BOOL_AS_INT) {
+				if (t is bool && m_config.bTREAT_BOOL_AS_INT) {
 					if (int.TryParse(sv, out int v))
 						return (T)(object)(v != 0);
 					else if (bool.TryParse(sv, out bool b))
@@ -141,7 +155,7 @@ namespace Biscuit {
 				posComment = Math.Max(posComment, match.Groups[4].Index);
 
 				// if key matches
-				if (string.Compare(match.Groups[1].Value, key, bIGNORE_CASE) != 0)
+				if (string.Compare(match.Groups[1].Value, key, m_config.bIGNORE_CASE) != 0)
 					continue;
 				if (comment == null && match.Groups[4].Length > 0)
 					comment = match.Groups[4].Value;
@@ -177,7 +191,7 @@ namespace Biscuit {
 		}
 
 		public void SetItemValue(string key, string value, bool bDO_NOT_QUOTE_STRING = false) {
-			if (bSTRING_BE_QUOTED && !bDO_NOT_QUOTE_STRING) {
+			if (m_config.bSTRING_BE_QUOTED && !bDO_NOT_QUOTE_STRING) {
 				SetItemValueRaw(key, $"\"{value}\"");
 			}
 			else {
@@ -186,7 +200,7 @@ namespace Biscuit {
 		}
 
 		public void SetItemValue<T>(string key, T value) {
-			if (value is bool v && bTREAT_BOOL_AS_INT) {
+			if (value is bool v && m_config.bTREAT_BOOL_AS_INT) {
 				SetItemValueRaw(key, v ? "1" : "0");
 			}
 			else {
@@ -268,7 +282,7 @@ namespace Biscuit {
 
 		public bool Load(string path) {
 			Clear();
-			m_sections.Add("", new xLazyProfile(bIGNORE_CASE, bTREAT_BOOL_AS_INT, bSTRING_BE_QUOTED));
+			m_sections.Add("", new xLazyProfile(m_config));
 			if (!File.Exists(path))
 				return false;
 
@@ -284,7 +298,7 @@ namespace Biscuit {
 					string key = m.Groups[1].Value;
 					if (key == "")
 						continue;
-					section = new xLazyProfile(bIGNORE_CASE, bTREAT_BOOL_AS_INT, bSTRING_BE_QUOTED);
+					section = new xLazyProfile(m_config);
 					m_sections.Add(key, section);
 					m_sections[key].m_line = str;
 				}

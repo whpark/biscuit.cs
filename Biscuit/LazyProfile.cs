@@ -94,7 +94,7 @@ namespace Biscuit {
 		public string? GetItemValueRaw(string key) {
 			foreach (var item in m_items) {
 				var match = s_reItem.Match(item);
-				if (!match.Success)
+				if (!match.Success || match.Index != 0)
 					continue;
 				// whole, key, '=', value, comments
 				if (string.Compare(match.Groups[1].Value, key, m_config.bIGNORE_CASE) == 0)
@@ -148,7 +148,7 @@ namespace Biscuit {
 			for (int i = 0; i < m_items.Count; i++) {
 				var item = m_items[i];
 				var match = s_reItem.Match(item);
-				if (!match.Success)
+				if (!match.Success || match.Index != 0)
 					continue;
 				// whole, key, '=', value, comment
 				posEQ = Math.Max(posEQ, match.Groups[2].Index);
@@ -223,7 +223,7 @@ namespace Biscuit {
 			List<(string key, string value)> items = new();
 			foreach (var item in m_items) {
 				var match = s_reItem.Match(item);
-				if (!match.Success)
+				if (!match.Success || match.Index != 0)
 					continue;
 				// whole, key, '=', value, comment
 				items.Add((match.Groups[1].Value, match.Groups[3].Value));
@@ -263,7 +263,7 @@ namespace Biscuit {
 			for (int i = 0; i < m_items.Count; i++) {
 				var item = m_items[i];
 				var match = s_reItem.Match(item);
-				if (!match.Success)
+				if (!match.Success || match.Index != 0)
 					continue;
 				// whole, key, '=', value, comment
 				if (funcIsItemDeprecated(match.Groups[1].Value, match.Groups[3].Value))
@@ -294,7 +294,7 @@ namespace Biscuit {
 				//	continue;
 				var str = line.TrimEnd('\r');
 				var m = s_reSection.Match(str);
-				if (m.Success && m.Groups[0].Index == 0) {
+				if (m.Success && m.Index == 0 && m.Groups[0].Index == 0) {
 					string key = m.Groups[1].Value;
 					if (key == "")
 						continue;

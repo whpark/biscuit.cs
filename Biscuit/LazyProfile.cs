@@ -122,7 +122,7 @@ namespace Biscuit {
 					uint => (T)(object)uint.Parse(sv),
 					float => (T)(object)float.Parse(sv),
 					double => (T)(object)double.Parse(sv),
-					string => (T)(object)sv,
+					string => (T)(object)(m_config.bSTRING_BE_QUOTED ? sv.Trim('"') : sv),
 					_ => throw new NotImplementedException(),
 				};
 			}
@@ -131,7 +131,11 @@ namespace Biscuit {
 			}
 		}
 		public string GetItemValue(string key, string vDefault) {
-			if (GetItemValueRaw(key) is string sv) { return sv; }
+			if (GetItemValueRaw(key) is string sv) {
+				if (m_config.bSTRING_BE_QUOTED)
+					return sv.Trim('"');
+				return sv;
+			}
 			else { return vDefault; }
 		}
 

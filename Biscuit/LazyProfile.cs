@@ -65,7 +65,9 @@ namespace Biscuit {
 		}
 
 		public bool Equals(xLazyProfile B) {
-			return m_sections.Equals(B.m_sections)
+			return true
+				&& m_sections.Count == B.m_sections.Count
+				&& m_sections.SequenceEqual(B.m_sections)
 				&& m_items.SequenceEqual(B.m_items)
 				&& m_line == B.m_line
 				&& m_config.Equals(B.m_config)

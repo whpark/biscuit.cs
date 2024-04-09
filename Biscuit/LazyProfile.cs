@@ -169,8 +169,10 @@ namespace Biscuit {
 				var mWhole = match.Groups[0];
 				var mValue = match.Groups[3];
 				var mComment = match.Groups[4];
-
-				m_items[i] = $"{mWhole.Value[0..mValue.Index]}{value.PadRight(mComment.Index - mValue.Index)}{comment}";
+				if (mComment.Success)
+					m_items[i] = $"{mWhole.Value[0..mValue.Index]}{value.PadRight(mComment.Index - mValue.Index)}{comment}";
+				else
+					m_items[i] = $"{mWhole.Value[0..mValue.Index]}{value}";
 				return;
 			}
 
@@ -208,6 +210,9 @@ namespace Biscuit {
 		public void SetItemValue<T>(string key, T value) {
 			if (value is bool v && m_config.bTREAT_BOOL_AS_INT) {
 				SetItemValueRaw(key, v ? "1" : "0");
+			}
+			else if (value is string str) {
+				SetItemValue(key, str, false);
 			}
 			else {
 				SetItemValueRaw(key, value.ToString());

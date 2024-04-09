@@ -16,7 +16,7 @@ namespace Biscuit {
 	using map_t = System.Collections.Generic.Dictionary<string, xLazyProfile>;
 
 	public class xLazyProfile : IEquatable<xLazyProfile> {
-		public struct sConfig : IEquatable<sConfig> {
+		public struct sConfig {
 			public bool bIGNORE_CASE = true;
 			public bool bTREAT_BOOL_AS_INT = true;
 			public bool bSTRING_BE_QUOTED = true;
@@ -32,11 +32,7 @@ namespace Biscuit {
 				bTREAT_BOOL_AS_INT = B.bTREAT_BOOL_AS_INT;
 				bSTRING_BE_QUOTED = B.bSTRING_BE_QUOTED;
 			}
-			bool IEquatable<sConfig>.Equals(sConfig B) {
-				return bIGNORE_CASE == B.bIGNORE_CASE
-					&& bTREAT_BOOL_AS_INT == B.bTREAT_BOOL_AS_INT
-					&& bSTRING_BE_QUOTED == B.bSTRING_BE_QUOTED;
-			}
+
 		}
 		public sConfig m_config = new();
 
@@ -69,7 +65,7 @@ namespace Biscuit {
 		}
 
 		public bool Equals(xLazyProfile B) {
-			return m_sections == B.m_sections
+			return m_sections.Equals(B.m_sections)
 				&& m_items.SequenceEqual(B.m_items)
 				&& m_line == B.m_line
 				&& m_config.Equals(B.m_config)

@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
 using System.Text;
+using System.Text.RegularExpressions;
 using System.Threading.Channels;
 using System.Threading.Tasks;
 
@@ -10,6 +11,55 @@ using CV = OpenCvSharp;
 
 namespace Biscuit {
 	public class misc {
+
+		static Regex regexInt = new Regex(@"\s*^[-+]?\s*(d+)", RegexOptions.Compiled);
+		static Regex regexDouble = new Regex(@"\s*^[-+]?\s*(d+(\.\d*)?|\.\d+)([eE][-+]?\d+)?", RegexOptions.Compiled);
+		public static int? StrToInt(string? str) {
+			if (str is null) {
+				return null;
+			}
+			var m = regexInt.Match(str ?? "");
+			if (!m.Success || m.Index != 0) {
+				return null;
+			}
+			return int.Parse(m.Groups[1].Value);
+		}
+		public static int? StrToInt(string? str, out string? trail) {
+			if (str is null) {
+				trail = null;
+				return null;
+			}
+			var m = regexInt.Match(str ?? "");
+			if (!m.Success || m.Index != 0) {
+				trail = str;
+				return null;
+			}
+			trail = str.Substring(m.Length);
+			return int.Parse(m.Groups[1].Value);
+		}
+		public static double? StrToDouble(string? str) {
+			if (str is null) {
+				return null;
+			}
+			var m = regexDouble.Match(str ?? "");
+			if (!m.Success || m.Index != 0) {
+				return null;
+			}
+			return double.Parse(m.Groups[1].Value);
+		}
+		public static double? StrToDouble(string? str, out string? trail) {
+			if (str is null) {
+				trail = null;
+				return null;
+			}
+			var m = regexDouble.Match(str ?? "");
+			if (!m.Success || m.Index != 0) {
+				trail = str;
+				return null;
+			}
+			trail = str.Substring(m.Length);
+			return double.Parse(m.Groups[1].Value);
+		}
 
 		public static int AdjustAlign128(int w) { return ((w+15)/16*16); }  //	((w+15)>>4)<<4
 		public static int AdjustAlign64(int w) { return ((w+7)/8*8); }      //	((w+ 7)>>3)<<3

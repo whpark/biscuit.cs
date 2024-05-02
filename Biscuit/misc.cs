@@ -10,7 +10,7 @@ using System.Threading.Tasks;
 using CV = OpenCvSharp;
 
 namespace Biscuit {
-	public class misc {
+	public static class misc {
 
 		static Regex regexInt = new Regex(@"\s*^[-+]?\s*(d+)", RegexOptions.Compiled);
 		static Regex regexDouble = new Regex(@"\s*^[-+]?\s*(d+(\.\d*)?|\.\d+)([eE][-+]?\d+)?", RegexOptions.Compiled);

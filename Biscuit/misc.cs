@@ -12,8 +12,8 @@ using CV = OpenCvSharp;
 namespace Biscuit {
 	public static class misc {
 
-		static Regex regexInt = new Regex(@"\s*^[-+]?\s*(d+)", RegexOptions.Compiled);
-		static Regex regexDouble = new Regex(@"\s*^[-+]?\s*(d+(\.\d*)?|\.\d+)([eE][-+]?\d+)?", RegexOptions.Compiled);
+		static Regex regexInt = new Regex(@"\s*^[-+]?\s*(\d+)", RegexOptions.Compiled);
+		static Regex regexDouble = new Regex(@"\s*^[-+]?\s*(\d+(\.\d*)?|\.\d+)([eE][-+]?\d+)?", RegexOptions.Compiled);
 		public static int? StrToInt(string? str) {
 			if (str is null) {
 				return null;

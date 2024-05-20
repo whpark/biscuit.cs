@@ -28,11 +28,13 @@ namespace Biscuit {
 		UInt32 DotsPerMeterX() { return m_dotsPerMeterX; }
 		UInt32 DotsPerMeterY() { return m_dotsPerMeterY; }
 
-
 		array<Byte>^ GetColorIndexRow(int y);
 		array<Byte>^ GetBitPlaneRow(int y);
 		array<Byte>^ GetBitPlaneRowInverted(int y);
 		CV::Mat^ GetImage(bool bBGRtoRGB);
+
+		bool FlipXY(bool bHorz, bool bVert);
+		bool Rotate(double angle_deg /* 0, 90, -90, 180, ... 90n */);
 
 	public:
 		static BitmapData^ GetBitmapData(CV::Mat^ mat);

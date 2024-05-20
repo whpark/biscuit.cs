@@ -278,6 +278,34 @@ namespace Biscuit {
 
 	}
 
+	bool xImageHelper::FlipXY(bool bHorz, bool bVert) {
+		if (!m_fb)
+			return false;
+
+		bool bOK = true;
+		if (bHorz)
+			bOK &= FreeImage_FlipHorizontal(m_fb);
+		if (bVert)
+			bOK &= FreeImage_FlipVertical(m_fb);
+
+		return bOK;
+	}
+
+	bool xImageHelper::Rotate(double angle_deg) {
+		if (!m_fb)
+			return false;
+		auto* fb = FreeImage_Rotate(m_fb, angle_deg);
+		if (!fb)
+			return false;
+		if (auto fbOld = m_fb) {
+			m_fb = nullptr;
+			FreeImage_Unload(fbOld);
+		}
+		m_fb = fb;
+
+		return true;
+	}
+
 	BitmapData^ xImageHelper::GetBitmapData(CV::Mat^ mat) {
 		if (!mat)
 			return nullptr;

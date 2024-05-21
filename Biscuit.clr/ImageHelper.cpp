@@ -197,9 +197,6 @@ namespace Biscuit {
 		if (type < 0)
 			return {};
 
-		//auto* info = FreeImage_GetInfo(src);
-		//info->bmiHeader;
-
 		FIBITMAP* converted{};
 		bool flip{true};
 		FIBITMAP* fib = src;
@@ -276,7 +273,6 @@ namespace Biscuit {
 		}
 
 		return img;
-
 	}
 
 	CV::Mat^ xImageHelper::GetIndexImage() {
@@ -315,27 +311,43 @@ namespace Biscuit {
 		if (type < 0)
 			return {};
 
-		//auto* info = FreeImage_GetInfo(src);
-		//info->bmiHeader;
-
+		FIBITMAP* converted{};
+		bool flip{true};
 		FIBITMAP* fib = src;
+		if (eImageType == FIT_BITMAP) {	// Standard image type
+			// first check if grayscale image
+			if (bpp <= 16) {
+				converted = FreeImage_ConvertTo8Bits(src);
+				type = CV::MatType::CV_8UC1;
+				fib = converted;
+			}
+		}
+		else {
+			flip = true;	// don't know if image needs be flipped. so just flip it. :)
+		}
 
 		CV::Mat^ img{};
-		if (!fib)
-			return {};
+		try {
+			if (!fib)
+				return {};
 
-		BYTE* data = FreeImage_GetBits(fib);
-		auto step = FreeImage_GetPitch(fib);
-		CV::Size^ size = gcnew CV::Size((int)FreeImage_GetWidth(fib), (int)FreeImage_GetHeight(fib));
-		if (!data or !step or size->Width <= 0 or size->Height <= 0)
-			return {};
+			BYTE* data = FreeImage_GetBits(fib);
+			auto step = FreeImage_GetPitch(fib);
+			CV::Size^ size = gcnew CV::Size((int)FreeImage_GetWidth(fib), (int)FreeImage_GetHeight(fib));
+			if (!data or !step or size->Width <= 0 or size->Height <= 0)
+				return {};
 
-		CV::Mat^ imgTemp = gcnew CV::Mat(size->Height, size->Width, type, (IntPtr)data, (long long)step);	// !!! CAUTION no memory allocation. 
-
-		//if (flip)
-			img = imgTemp->Flip(CV::FlipMode::X);
-		//else
-		//	imgTemp->CopyTo(img);
+			CV::Mat^ imgTemp = gcnew CV::Mat(size->Height, size->Width, type, (IntPtr)data, (long long)step);	// !!! CAUTION no memory allocation. 
+			
+			if (flip)
+				img = imgTemp->Flip(CV::FlipMode::X);
+			else
+				imgTemp->CopyTo(img);
+		}
+		finally {
+			if (converted)
+				FreeImage_Unload(converted);
+		}
 
 		return img;
 	}

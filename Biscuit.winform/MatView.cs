@@ -15,6 +15,7 @@ using System.Runtime.InteropServices;
 using System.Text;
 using System.Drawing;
 using System.Windows.Forms;
+using System.Diagnostics.CodeAnalysis;
 
 namespace Biscuit.winform {
 
@@ -760,10 +761,10 @@ namespace Biscuit.winform {
 
 			CV.Mat img = new CV.Mat(rcTargetC.Size, m_img.Type());
 			//img = m_settings.crBackground;
-			var eInterpolation = CV.InterpolationFlags.Linear;
+			var eInterpolation = m_palette is not null ? InterpolationFlags.Nearest : CV.InterpolationFlags.Linear;
 			try {
 				if (ct.Scale < 1.0) {
-					if (s_mapZoomOutInterpolation.ContainsKey(m_settings.eZoomOut)) {
+					if (m_palette is not null && s_mapZoomOutInterpolation.ContainsKey(m_settings.eZoomOut)) {
 						eInterpolation = s_mapZoomOutInterpolation[m_settings.eZoomOut];
 					}
 
@@ -811,7 +812,7 @@ namespace Biscuit.winform {
 					}
 				}
 				else if (ct.Scale > 1.0) {
-					if (s_mapZoomInInterpolation.ContainsKey(m_settings.eZoomIn)) {
+					if (m_palette is not null && s_mapZoomInInterpolation.ContainsKey(m_settings.eZoomIn)) {
 						eInterpolation = s_mapZoomInInterpolation[m_settings.eZoomIn];
 					}
 					CV.Mat imgSrc = m_img[roi];

@@ -134,6 +134,7 @@ namespace Biscuit.winform {
 					}
 					self.threadPyramidMaker = null;
 				});
+				self.imagesThumbnail.Clear();
 				threadPyramidMaker.Start();
 				return true;
 			}

@@ -368,10 +368,10 @@ namespace Biscuit {
 				// get palette
 				if (auto* palette = FreeImage_GetPalette(src)) {
 					auto nPalette = FreeImage_GetColorsUsed(src);
-					CV::Mat^ matPalette = gcnew CV::Mat(nPalette, 1, CV::MatType::CV_8UC3);	// cv.ApplyColorMap does not support 4-channel palette
+					CV::Mat^ matPalette = CV::Mat::Zeros(nPalette, 1, CV::MatType::CV_8UC3);	// cv.ApplyColorMap does not support 4-channel palette
 					for (int i = 0; i < nPalette; i++) {
-						auto c = palette[i];
-						matPalette->Set(i, 0, CV::Scalar(c.rgbRed, c.rgbGreen, c.rgbBlue, c.rgbReserved));
+						auto const& c = palette[i];
+						matPalette->At<CV::Vec3b>(i, 0) = CV::Vec3b(c.rgbRed, c.rgbGreen, c.rgbBlue/*, c.rgbReserved*/);
 					}
 					return matPalette;
 				}

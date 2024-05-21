@@ -226,12 +226,18 @@ namespace Biscuit.winform {
 			bool bCopied = false;
 			if (true
 				&& palette is not null
-				&& (palette.Type() == CV.MatType.CV_8UC1 || palette.Type() == CV.MatType.CV_8UC3 || palette.Type() == CV.MatType.CV_8UC4)
-				&& (palette.Rows == 256 && palette.Cols == 1)
-				) {
-				m_palette = new();
-				palette.CopyTo(m_palette);
-				bCopied = true;
+				&& (palette.Type() == CV.MatType.CV_8UC1 || palette.Type() == CV.MatType.CV_8UC3/* || palette.Type() == CV.MatType.CV_8UC4*/)
+				&& palette.Cols == 1
+				)
+			{
+				if (palette.Rows == 256) {
+					m_palette = new();
+					palette.CopyTo(m_palette);
+					bCopied = true;
+				} else if (palette.Rows < 256) {
+					m_palette = new CV.Mat(256, 1, palette.Type());
+					palette.CopyTo(m_palette[new CV.Rect(0, 0, palette.Cols, palette.Rows)]);
+				}
 			}
 			else {
 				m_palette = null;
@@ -483,7 +489,7 @@ namespace Biscuit.winform {
 		}
 
 		//! @brief Draw gridlines and pixel value of Mat to canvas.
-		public static bool DrawPixelValue(ref CV.Mat canvas, in CV.Mat imgOriginal, in CV.Rect roi, in xCoordTrans2d ctCanvasFromImage, in double minTextHeight) {
+		public static bool DrawPixelValue(ref CV.Mat canvas, in CV.Mat imgOriginal, in CV.Rect roi, in xCoordTrans2d ctCanvasFromImage, in double minTextHeight, in CV.Mat? palette = null) {
 
 			// Draw Grid / pixel value
 			if (ctCanvasFromImage.Scale < 4)
@@ -510,22 +516,35 @@ namespace Biscuit.winform {
 				return false;
 			double heightFont = misc.Clamp(ctCanvasFromImage.Scale/(nChannel+1.0), 1.0, 40.0) / 40.0;
 			//auto t0 = stdc::steady_clock::now();
+			CV.Mat imgColor;
+			if (palette is null)
+				imgColor = imgOriginal[roi];
+			else {
+				imgColor = new();
+				CV.Cv2.ApplyColorMap(imgOriginal[roi], imgColor, palette);
+			}
 			for (int y = roi.Y, y1 = roi.Y+roi.Height; y < y1; y++) {
 				IntPtr ptr = imgOriginal.Ptr(y);
 				int x1 = roi.X+roi.Width;
 				//#pragma omp parallel for --------- little improvement
 				CV.Scalar[]? vs = GetMatValue(ptr, depth, nChannel, roi.X, x1);
+				CV.Scalar[]? vsColor = GetMatValue(imgColor.Ptr(y-roi.Y), imgColor.Depth(), imgColor.Channels(), 0, roi.Width);
 				if (vs is null)
 					continue;
 				for (int i = 0; i < vs.Length; i++) {
 					var v = vs[i];
 					CV.Point2d pt = ctCanvasFromImage.Trans(new CV.Point2d(roi.X+i, y));
-					//auto p = SkPoint::Make(pt.x, pt.y);
-					double avg = (v[0] + v[1] + v[2]) / nChannel;
-					CV.Scalar crText = (avg > 128) ? new CV.Scalar(0, 0, 0, 255) : new CV.Scalar(255, 255, 255, 255);
+					// Black Outline with White Text
+
+					var vColor = vsColor[i];
+					double avgColor = (vColor[0] + vColor[1] + vColor[2]) / nChannel;
+					CV.Scalar crText = (avgColor > 128) ? new CV.Scalar(0, 0, 0, 255) : new CV.Scalar(255, 255, 255, 255);
+					int h = (int)(heightFont*40);
+					CV.Point ptText = new (pt.X, pt.Y+h);
 					for (int ch = 0; ch < nChannel; ch++) {
 						string str = $"{v[ch],3}";
-						canvas.PutText(str, new CV.Point(pt.X, pt.Y+(ch+1)*heightFont*40), CV.HersheyFonts.HersheyDuplex, heightFont, crText, 1, CV.LineTypes.Link8, false);
+						canvas.PutText(str, ptText, CV.HersheyFonts.HersheyDuplex, heightFont, crText, 1, CV.LineTypes.Link8, false);
+						ptText.Y += h;
 					}
 				}
 			}
@@ -819,7 +838,7 @@ namespace Biscuit.winform {
 				if (m_settings.bDrawPixelValue) {
 					xCoordTrans2d ctCanvas = new xCoordTrans2d(m_ctScreenFromImage);
 					ctCanvas.m_offset -= m_ctScreenFromImage.Trans(roi.TopLeft);
-					DrawPixelValue(ref img, m_img, roi, ctCanvas, 8);   // DPI...
+					DrawPixelValue(ref img, m_img, roi, ctCanvas, 8, m_palette);   // DPI...
 				}
 				PixelFormat pixelFormat = 
 					img.Type() == CV.MatType.CV_8UC3 ? PixelFormat.Format24bppRgb:

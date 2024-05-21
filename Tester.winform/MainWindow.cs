@@ -56,10 +56,10 @@ namespace Tester.winform {
 			//}
 
 			xImageHelper imgHelder = new();
-			imgHelder.LoadImage(@"D:\Project\APS\1024x1600-1bpp.bmp");
+			imgHelder.LoadImage(@"..\test_resource\1000x1000-4bpp.bmp");
 			CV.Mat mat = imgHelder.GetIndexImage();
 			CV.Mat palette = imgHelder.GetPalette();
-			//ui_view.SetImage(mat, true, xMatView.eZOOM.fit2window, false);
+			ui_view.SetImage(mat, true, xMatView.eZOOM.fit2window, false, palette);
 			//ui_view.SetPalette(palette);
 		}
 

@@ -226,7 +226,7 @@ namespace Biscuit.winform {
 			bool bCopied = false;
 			if (true
 				&& palette is not null
-				&& (palette.Type() == CV.MatType.CV_8UC1 || palette.Type() == CV.MatType.CV_8UC3)
+				&& (palette.Type() == CV.MatType.CV_8UC1 || palette.Type() == CV.MatType.CV_8UC3 || palette.Type() == CV.MatType.CV_8UC4)
 				&& (palette.Rows == 256 && palette.Cols == 1)
 				) {
 				m_palette = new();

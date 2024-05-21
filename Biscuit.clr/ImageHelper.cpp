@@ -210,13 +210,14 @@ namespace Biscuit {
 				bool bAlpha{};
 				// get palette
 				if (auto* palette = FreeImage_GetPalette(src)) {
-					for (auto nPalette = FreeImage_GetColorsUsed(src), i{ 0u }; i < nPalette; i++) {
+					auto nPalette = FreeImage_GetColorsUsed(src);
+					for (auto i{ 0u }; i < nPalette; i++) {
 						if (auto c = palette[i]; c.rgbBlue != c.rgbGreen or c.rgbGreen != c.rgbRed) {	// todo: alpha channel?
 							bColor = true;
 							break;
 						}
 					}
-					for (auto nPalette = FreeImage_GetColorsUsed(src), i{ 0u }; i < nPalette; i++) {
+					for (auto i{ 0u }; i < nPalette; i++) {
 						if (auto c = palette[i]; c.rgbReserved) {	// todo: alpha channel?
 							bAlpha = true;
 							break;
@@ -276,6 +277,95 @@ namespace Biscuit {
 
 		return img;
 
+	}
+
+	CV::Mat^ xImageHelper::GetIndexImage() {
+		if (!m_fb)
+			return nullptr;
+		auto* src = m_fb;
+
+		CV::MatType type;
+		int bpp{-1};
+		auto eImageType = FreeImage_GetImageType(src);
+		switch (eImageType) {
+		case FIT_UINT16:	type = CV::MatType::CV_16UC1; break;
+		case FIT_INT16:		type = CV::MatType::CV_16SC1; break;
+			//case FIT_UINT32:	type = CV::MatType::CV_32SC1; break;
+		case FIT_INT32:		type = CV::MatType::CV_32SC1; break;
+		case FIT_FLOAT:		type = CV::MatType::CV_32FC1; break;
+		case FIT_DOUBLE:	type = CV::MatType::CV_64FC1; break;
+		case FIT_COMPLEX:	type = CV::MatType::CV_64FC2; break;
+		case FIT_RGB16:		type = CV::MatType::CV_16UC3; break;
+		case FIT_RGBA16:	type = CV::MatType::CV_16UC4; break;
+		case FIT_RGBF:		type = CV::MatType::CV_32FC3; break;
+		case FIT_RGBAF:		type = CV::MatType::CV_32FC4; break;
+		case FIT_BITMAP:
+			bpp = FreeImage_GetBPP(src);
+			switch (bpp) {
+			case 1:
+			case 2:	// probably there might not be 2bpp image
+			case 4:
+			case 8:  type = CV::MatType::CV_8UC1; break;	// To Be Determined
+			case 16: type = CV::MatType::CV_16UC1; break;	// To Be Determined
+			case 24: type = CV::MatType::CV_8UC3; break;
+			case 32: type = CV::MatType::CV_8UC4; break;
+			}
+			break;
+		}
+		if (type < 0)
+			return {};
+
+		//auto* info = FreeImage_GetInfo(src);
+		//info->bmiHeader;
+
+		FIBITMAP* fib = src;
+
+		CV::Mat^ img{};
+		if (!fib)
+			return {};
+
+		BYTE* data = FreeImage_GetBits(fib);
+		auto step = FreeImage_GetPitch(fib);
+		CV::Size^ size = gcnew CV::Size((int)FreeImage_GetWidth(fib), (int)FreeImage_GetHeight(fib));
+		if (!data or !step or size->Width <= 0 or size->Height <= 0)
+			return {};
+
+		CV::Mat^ imgTemp = gcnew CV::Mat(size->Height, size->Width, type, (IntPtr)data, (long long)step);	// !!! CAUTION no memory allocation. 
+
+		//if (flip)
+			img = imgTemp->Flip(CV::FlipMode::X);
+		//else
+		//	imgTemp->CopyTo(img);
+
+		return img;
+	}
+
+	CV::Mat^ xImageHelper::GetPalette() {
+		if (!m_fb)
+			return nullptr;
+		auto* src = m_fb;
+
+		CV::MatType type;
+		int bpp{-1};
+		auto eImageType = FreeImage_GetImageType(src);
+		if (eImageType == FIT_BITMAP) {	// Standard image type
+			// first check if grayscale image
+			if (bpp <= 16) {
+				bool bColor{};
+				bool bAlpha{};
+				// get palette
+				if (auto* palette = FreeImage_GetPalette(src)) {
+					auto nPalette = FreeImage_GetColorsUsed(src);
+					CV::Mat^ matPalette = gcnew CV::Mat(nPalette, 1, CV::MatType::CV_8UC3);	// cv.ApplyColorMap does not support 4-channel palette
+					for (int i = 0; i < nPalette; i++) {
+						auto c = palette[i];
+						matPalette->Set(i, 0, CV::Scalar(c.rgbRed, c.rgbGreen, c.rgbBlue, c.rgbReserved));
+					}
+					return matPalette;
+				}
+			}
+		}
+		return nullptr;
 	}
 
 	bool xImageHelper::FlipXY(bool bHorz, bool bVert) {

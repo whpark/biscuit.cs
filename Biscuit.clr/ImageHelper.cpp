@@ -371,7 +371,7 @@ namespace Biscuit {
 					CV::Mat^ matPalette = CV::Mat::Zeros(nPalette, 1, CV::MatType::CV_8UC3);	// cv.ApplyColorMap does not support 4-channel palette
 					for (int i = 0; i < nPalette; i++) {
 						auto const& c = palette[i];
-						matPalette->At<CV::Vec3b>(i, 0) = CV::Vec3b(c.rgbRed, c.rgbGreen, c.rgbBlue/*, c.rgbReserved*/);
+						matPalette->At<CV::Vec3b>(i, 0) = CV::Vec3b(c.rgbBlue, c.rgbGreen, c.rgbRed/*, c.rgbReserved*/);
 					}
 					return matPalette;
 				}

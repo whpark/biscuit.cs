@@ -25,5 +25,9 @@
 		</Compile>
 	</ItemGroup>
 
+	<Target Name="PostBuild" AfterTargets="PostBuildEvent">
+	  <Exec Command="echo xcopy /dchri &quot;$(SolutionDir)x64\$(Configuration)\*.dll&quot; &quot;$(ProjectDir)$(OutDir)&quot;&#xD;&#xA;xcopy /dchri &quot;$(SolutionDir)x64\$(Configuration)\*.dll&quot; &quot;$(ProjectDir)$(OutDir)&quot;&#xD;&#xA;" />
+	</Target>
+
 
 </Project>

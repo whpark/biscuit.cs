@@ -65,8 +65,9 @@ namespace Biscuit {
 			return nullptr;
 
 		y = m_height - 1 - y;	// flip y-axis
-		auto* bits = FreeImage_GetBits(m_fb);
-		RGBQUAD* palette = FreeImage_GetPalette(m_fb);
+		uint64_t offset = y * m_pitch;
+		auto* bits = FreeImage_GetBits(m_fb) + offset;
+		//RGBQUAD* palette = FreeImage_GetPalette(m_fb);
 
 		array<Byte>^ row = nullptr;
 
@@ -74,11 +75,10 @@ namespace Biscuit {
 		case 1:
 			{
 				row = gcnew array<Byte>(m_pitch * 8);
-				uint64_t offset = y * m_pitch;
 				for (auto i{0u}; i < m_pitch; ++i) {
 					int x0 = i << 3;	// == i*8
 					// loop unrolling
-					auto v = bits[offset + i];
+					auto v = bits[i];
 					row[x0 + 0] = (v & 0b1000'0000) ? 1 : 0;
 					row[x0 + 1] = (v & 0b0100'0000) ? 1 : 0;
 					row[x0 + 2] = (v & 0b0010'0000) ? 1 : 0;
@@ -94,11 +94,10 @@ namespace Biscuit {
 		case 2:
 			{
 				row = gcnew array<Byte>(m_pitch * 4);
-				uint64_t offset = y * m_pitch;
 				for (auto i{0u}; i < m_pitch; ++i) {
 					int x0 = i << 2;	// == i*4
 					// loop unrolling
-					uint8_t v = bits[offset + i];
+					uint8_t v = bits[i];
 					row[x0 + 0] = (v >> 6) & 0b0011;
 					row[x0 + 1] = (v >> 4) & 0b0011;
 					row[x0 + 2] = (v >> 2) & 0b0011;
@@ -110,10 +109,9 @@ namespace Biscuit {
 		case 4:
 			{
 				row = gcnew array<Byte>(m_pitch * 2);
-				uint64_t offset = y * m_pitch;
 				for (auto i{0u}; i < m_pitch; ++i) {
 					int x0 = i << 1;
-					uint8_t v = bits[offset + i];
+					uint8_t v = bits[i];
 					row[x0 + 0] = (v >> 4) & 0b1111;
 					row[x0 + 1] = (v >> 0) & 0b1111;
 				}
@@ -123,9 +121,8 @@ namespace Biscuit {
 		case 8:
 			{
 				row = gcnew array<Byte>(m_pitch);
-				uint64_t offset = y * m_pitch;
 				for (auto i{0u}; i < m_pitch; ++i) {
-					row[i] = bits[offset + i];
+					row[i] = bits[i];
 				}
 			}
 			break;
@@ -238,18 +235,18 @@ namespace Biscuit {
 			flip = true;	// don't know if image needs be flipped. so just flip it. :)
 		}
 
-		CV::Mat^ img{};
+		CV::Mat^ img = nullptr;
 		try {
 			if (!fib)
 				return {};
 
-			BYTE* data = FreeImage_GetBits(fib);
+			BYTE* bits = FreeImage_GetBits(fib);
 			auto step = FreeImage_GetPitch(fib);
 			CV::Size^ size = gcnew CV::Size((int)FreeImage_GetWidth(fib), (int)FreeImage_GetHeight(fib));
-			if (!data or !step or size->Width <= 0 or size->Height <= 0)
+			if (!bits or !step or size->Width <= 0 or size->Height <= 0)
 				return {};
 
-			CV::Mat^ imgTemp = gcnew CV::Mat(size->Height, size->Width, type, (IntPtr)data, (long long)step);	// !!! CAUTION no memory allocation. 
+			CV::Mat^ imgTemp = gcnew CV::Mat(size->Height, size->Width, type, (IntPtr)bits, (long long)step);	// !!! CAUTION no memory allocation. 
 			
 			if (flip)
 				img = imgTemp->Flip(CV::FlipMode::X);
@@ -280,101 +277,104 @@ namespace Biscuit {
 			return nullptr;
 		auto* src = m_fb;
 
-		CV::MatType type;
-		int bpp{-1};
+		int bpp = FreeImage_GetBPP(src);
 		auto eImageType = FreeImage_GetImageType(src);
-		switch (eImageType) {
-		case FIT_UINT16:	type = CV::MatType::CV_16UC1; break;
-		case FIT_INT16:		type = CV::MatType::CV_16SC1; break;
-			//case FIT_UINT32:	type = CV::MatType::CV_32SC1; break;
-		case FIT_INT32:		type = CV::MatType::CV_32SC1; break;
-		case FIT_FLOAT:		type = CV::MatType::CV_32FC1; break;
-		case FIT_DOUBLE:	type = CV::MatType::CV_64FC1; break;
-		case FIT_COMPLEX:	type = CV::MatType::CV_64FC2; break;
-		case FIT_RGB16:		type = CV::MatType::CV_16UC3; break;
-		case FIT_RGBA16:	type = CV::MatType::CV_16UC4; break;
-		case FIT_RGBF:		type = CV::MatType::CV_32FC3; break;
-		case FIT_RGBAF:		type = CV::MatType::CV_32FC4; break;
-		case FIT_BITMAP:
-			bpp = FreeImage_GetBPP(src);
-			switch (bpp) {
-			case 1:
-			case 2:	// probably there might not be 2bpp image
-			case 4:
-			case 8:  type = CV::MatType::CV_8UC1; break;	// To Be Determined
-			case 16: type = CV::MatType::CV_16UC1; break;	// To Be Determined
-			case 24: type = CV::MatType::CV_8UC3; break;
-			case 32: type = CV::MatType::CV_8UC4; break;
-			}
-			break;
-		}
-		if (type < 0)
-			return {};
+		if ( (eImageType != FIT_BITMAP) or (bpp > 8) )
+			return nullptr;
 
-		FIBITMAP* converted{};
-		bool flip{true};
-		FIBITMAP* fib = src;
-		if (eImageType == FIT_BITMAP) {	// Standard image type
-			// first check if grayscale image
-			if (bpp <= 16) {
-				converted = FreeImage_ConvertTo8Bits(src);
-				type = CV::MatType::CV_8UC1;
-				fib = converted;
-			}
-		}
-		else {
-			flip = true;	// don't know if image needs be flipped. so just flip it. :)
-		}
-
-		CV::Mat^ img{};
+		CV::Mat^ img = nullptr;
 		try {
-			if (!fib)
-				return {};
+			BYTE* bits = FreeImage_GetBits(src);
+			auto step = FreeImage_GetPitch(src);
+			CV::Size^ size = gcnew CV::Size((int)FreeImage_GetWidth(src), (int)FreeImage_GetHeight(src));
+			if (!bits or !step or size->Width <= 0 or size->Height <= 0)
+				return nullptr;
 
-			BYTE* data = FreeImage_GetBits(fib);
-			auto step = FreeImage_GetPitch(fib);
-			CV::Size^ size = gcnew CV::Size((int)FreeImage_GetWidth(fib), (int)FreeImage_GetHeight(fib));
-			if (!data or !step or size->Width <= 0 or size->Height <= 0)
-				return {};
+			img = gcnew CV::Mat(size->Height, size->Width, MatType::CV_8UC1);
 
-			CV::Mat^ imgTemp = gcnew CV::Mat(size->Height, size->Width, type, (IntPtr)data, (long long)step);	// !!! CAUTION no memory allocation. 
-			
-			if (flip)
-				img = imgTemp->Flip(CV::FlipMode::X);
+			if (bpp == 1) {
+				for (int y{}; y < img->Rows; y++, bits+=step) {
+					BYTE* row = (Byte*)img->Ptr(y).ToPointer();
+					for (auto i{0u}; i < step; ++i) {
+						int x0 = i << 3;	// == i*8
+						// loop unrolling
+						auto v = bits[i];
+						row[x0 + 0] = (v & 0b1000'0000) ? 1 : 0;
+						row[x0 + 1] = (v & 0b0100'0000) ? 1 : 0;
+						row[x0 + 2] = (v & 0b0010'0000) ? 1 : 0;
+						row[x0 + 3] = (v & 0b0001'0000) ? 1 : 0;
+						row[x0 + 4] = (v & 0b0000'1000) ? 1 : 0;
+						row[x0 + 5] = (v & 0b0000'0100) ? 1 : 0;
+						row[x0 + 6] = (v & 0b0000'0010) ? 1 : 0;
+						row[x0 + 7] = (v & 0b0000'0001) ? 1 : 0;
+					}
+				}
+			}
+			else if (bpp == 2) {
+				for (int y{}; y < img->Rows; y++, bits+=step) {
+					BYTE* row = (BYTE*)img->Ptr(y).ToPointer();
+					for (auto i{0u}; i < step; ++i) {
+						int x0 = i << 3;	// == i*8
+						// loop unrolling
+						auto v = bits[i];
+						row[x0 + 0] = (v >> 6) & 0b0011;
+						row[x0 + 1] = (v >> 4) & 0b0011;
+						row[x0 + 2] = (v >> 2) & 0b0011;
+						row[x0 + 3] = (v >> 0) & 0b0011;
+					}
+				}
+			}
+			else if (bpp == 4) {
+				for (int y{}; y < img->Rows; y++, bits+=step) {
+					BYTE* row = (BYTE*)img->Ptr(y).ToPointer();
+					for (auto i{0u}; i < step; ++i) {
+						int x0 = i << 1;
+						uint8_t v = bits[i];
+						row[x0 + 0] = (v >> 4) & 0b1111;
+						row[x0 + 1] = (v >> 0) & 0b1111;
+					}
+				}
+			}
+			else if (bpp == 8) {
+				for (int y{}; y < img->Rows; y++, bits+=step) {
+					BYTE* row = (BYTE*)img->Ptr(y).ToPointer();
+					for (auto i{0u}; i < step; ++i) {
+						row[i] = bits[i];
+					}
+				}
+			}
 			else
-				imgTemp->CopyTo(img);
+				return nullptr;
+
+			img = img->Flip(CV::FlipMode::X);
+
+			return img;
 		}
-		finally {
-			if (converted)
-				FreeImage_Unload(converted);
+		catch (Exception^ ex) {
+			Console::WriteLine(ex->Message);
 		}
 
-		return img;
+		return nullptr;
 	}
 
 	CV::Mat^ xImageHelper::GetPalette() {
 		if (!m_fb)
 			return nullptr;
 		auto* src = m_fb;
-
 		CV::MatType type;
-		int bpp{-1};
-		auto eImageType = FreeImage_GetImageType(src);
-		if (eImageType == FIT_BITMAP) {	// Standard image type
+		if (auto* palette = FreeImage_GetPalette(src)) {
 			// first check if grayscale image
-			if (bpp <= 16) {
+			if (int bpp = FreeImage_GetBPP(src); bpp <= 8) {
 				bool bColor{};
 				bool bAlpha{};
 				// get palette
-				if (auto* palette = FreeImage_GetPalette(src)) {
-					auto nPalette = FreeImage_GetColorsUsed(src);
-					CV::Mat^ matPalette = CV::Mat::Zeros(nPalette, 1, CV::MatType::CV_8UC3);	// cv.ApplyColorMap does not support 4-channel palette
-					for (int i = 0; i < nPalette; i++) {
-						auto const& c = palette[i];
-						matPalette->At<CV::Vec3b>(i, 0) = CV::Vec3b(c.rgbBlue, c.rgbGreen, c.rgbRed/*, c.rgbReserved*/);
-					}
-					return matPalette;
+				auto nPalette = FreeImage_GetColorsUsed(src);
+				CV::Mat^ matPalette = CV::Mat::Zeros(nPalette, 1, CV::MatType::CV_8UC3);	// cv.ApplyColorMap does not support 4-channel palette
+				for (int i = 0; i < nPalette; i++) {
+					auto const& c = palette[i];
+					matPalette->At<CV::Vec3b>(i, 0) = CV::Vec3b(c.rgbBlue, c.rgbGreen, c.rgbRed/*, c.rgbReserved*/);
 				}
+				return matPalette;
 			}
 		}
 		return nullptr;

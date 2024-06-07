@@ -55,10 +55,11 @@ namespace Tester.winform {
 			//	palette.At<CV.Vec3b>(i, 0) = new CV.Vec3b((byte)0, (byte)i, (byte)i);
 			//}
 
-			xImageHelper imgHelder = new();
-			imgHelder.LoadImage(@"..\test_resource\1000x1000-4bpp.bmp");
-			CV.Mat mat = imgHelder.GetIndexImage();
-			CV.Mat palette = imgHelder.GetPalette();
+			xImageHelper imgHelper = new();
+			//imgHelper.LoadImage(@"..\test_resource\1000x1000-4bpp.bmp");
+			imgHelper.LoadImage(@"/Temp/full size.bmp");
+			CV.Mat mat = imgHelper.GetIndexImage();
+			CV.Mat palette = imgHelper.GetPalette();
 			ui_view.SetImage(mat, true, xMatView.eZOOM.fit2window, false, palette);
 			//ui_view.SetPalette(palette);
 		}

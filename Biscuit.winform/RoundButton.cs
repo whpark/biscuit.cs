@@ -6,10 +6,10 @@ using System.Text;
 using System.Threading.Tasks;
 
 namespace Biscuit.winform {
-	public class RoundButton : System.Windows.Forms.Button {
+	public class xRoundButton : System.Windows.Forms.Button {
 		public int RadiusX { get; set; }
 		public int RadiusY { get; set; }
-		public RoundButton() {
+		public xRoundButton() {
 			RadiusX = RadiusY = 30;
 			BackColor = System.Drawing.Color.Gray;
 			FlatStyle = FlatStyle.Flat;

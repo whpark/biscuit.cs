@@ -25,7 +25,7 @@
 		private void InitializeComponent() {
 			Biscuit.winform.xMatView.sSettings sSettings1 = new Biscuit.winform.xMatView.sSettings();
 			ui_view = new Biscuit.winform.xMatView();
-			roundButton1 = new Biscuit.winform.RoundButton();
+			roundButton1 = new Biscuit.winform.xRoundButton();
 			SuspendLayout();
 			// 
 			// ui_view
@@ -79,6 +79,6 @@
 		#endregion
 
 		private Biscuit.winform.xMatView ui_view;
-		private Biscuit.winform.RoundButton roundButton1;
+		private Biscuit.winform.xRoundButton roundButton1;
 	}
 }

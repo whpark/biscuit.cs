@@ -14,34 +14,98 @@ namespace Biscuit {
 
 		static Regex regexInt = new Regex(@"\s*^[-+]?\s*(\d+)", RegexOptions.Compiled);
 		static Regex regexDouble = new Regex(@"\s*^[-+]?\s*(\d+(\.\d*)?|\.\d+)([eE][-+]?\d+)?", RegexOptions.Compiled);
+
+		public static T? StrTo<T>(string? str) where T : unmanaged {
+			if (str is null)
+				return null;
+			T v = default;
+			T? r = v switch {
+				char => (T?)(object?)StrToInt(str),
+				byte => (T?)(object?)StrToUInt(str),
+				short => (T?)(object?)StrToInt(str),
+				ushort => (T?)(object?)StrToUInt(str),
+				int => (T?)(object?)StrToInt(str),
+				uint => (T?)(object?)StrToUInt(str),
+				long => (T?)(object?)StrToInt(str),
+				ulong => (T?)(object?)StrToUInt(str),
+				float => (T?)(object?)StrToDouble(str),
+				double => (T?)(object?)StrToDouble(str),
+				_ => null
+			};
+			return r;
+		}
+		public static T? StrTo<T>(string? str, out string? trail) where T : unmanaged {
+			trail = str;
+			if (str is null)
+				return null;
+			T v = default;
+			T? r = v switch {
+				char => (T?)(object?)StrToInt(str, out trail),
+				byte => (T?)(object?)StrToUInt(str, out trail),
+				short => (T?)(object?)StrToInt(str, out trail),
+				ushort => (T?)(object?)StrToUInt(str, out trail),
+				int => (T?)(object?)StrToInt(str, out trail),
+				uint => (T?)(object?)StrToUInt(str, out trail),
+				long => (T?)(object?)StrToInt(str, out trail),
+				ulong => (T?)(object?)StrToUInt(str, out trail),
+				float => (T?)(object?)StrToDouble(str, out trail),
+				double => (T?)(object?)StrToDouble(str, out trail),
+				_ => null
+			};
+			return r;
+		}
+
 		public static int? StrToInt(string? str) {
 			if (str is null) {
 				return null;
 			}
-			var m = regexInt.Match(str ?? "");
+			var m = regexInt.Match(str!);
 			if (!m.Success || m.Index != 0) {
 				return null;
 			}
 			return int.Parse(m.Groups[1].Value);
+		}
+		public static uint? StrToUInt(string? str) {
+			if (str is null) {
+				return null;
+			}
+			var m = regexInt.Match(str!);
+			if (!m.Success || m.Index != 0) {
+				return null;
+			}
+			return uint.Parse(m.Groups[1].Value);
 		}
 		public static int? StrToInt(string? str, out string? trail) {
 			if (str is null) {
 				trail = null;
 				return null;
 			}
-			var m = regexInt.Match(str ?? "");
+			var m = regexInt.Match(str!);
 			if (!m.Success || m.Index != 0) {
 				trail = str;
 				return null;
 			}
-			trail = str.Substring(m.Length);
+			trail = str!.Substring(m.Length);
 			return int.Parse(m.Groups[1].Value);
+		}
+		public static uint? StrToUInt(string? str, out string? trail) {
+			if (str is null) {
+				trail = null;
+				return null;
+			}
+			var m = regexInt.Match(str!);
+			if (!m.Success || m.Index != 0) {
+				trail = str;
+				return null;
+			}
+			trail = str!.Substring(m.Length);
+			return uint.Parse(m.Groups[1].Value);
 		}
 		public static double? StrToDouble(string? str) {
 			if (str is null) {
 				return null;
 			}
-			var m = regexDouble.Match(str ?? "");
+			var m = regexDouble.Match(str!);
 			if (!m.Success || m.Index != 0) {
 				return null;
 			}
@@ -52,12 +116,12 @@ namespace Biscuit {
 				trail = null;
 				return null;
 			}
-			var m = regexDouble.Match(str ?? "");
+			var m = regexDouble.Match(str!);
 			if (!m.Success || m.Index != 0) {
 				trail = str;
 				return null;
 			}
-			trail = str.Substring(m.Length);
+			trail = str!.Substring(m.Length);
 			return double.Parse(m.Groups[1].Value);
 		}
 

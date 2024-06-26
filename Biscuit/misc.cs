@@ -15,6 +15,26 @@ namespace Biscuit {
 		static Regex regexInt = new Regex(@"\s*^[-+]?\s*(\d+)", RegexOptions.Compiled);
 		static Regex regexDouble = new Regex(@"\s*^[-+]?\s*(\d+(\.\d*)?|\.\d+)([eE][-+]?\d+)?", RegexOptions.Compiled);
 
+		public static T StrTo<T>(string? str, T vDefault) where T : unmanaged {
+			if (str is null)
+				return vDefault;
+			T v = default;
+			T? r = v switch {
+				char => (T?)(object?)StrToInt(str),
+				byte => (T?)(object?)StrToUInt(str),
+				short => (T?)(object?)StrToInt(str),
+				ushort => (T?)(object?)StrToUInt(str),
+				int => (T?)(object?)StrToInt(str),
+				uint => (T?)(object?)StrToUInt(str),
+				long => (T?)(object?)StrToInt(str),
+				ulong => (T?)(object?)StrToUInt(str),
+				float => (T?)(object?)StrToDouble(str),
+				double => (T?)(object?)StrToDouble(str),
+				_ => vDefault
+			};
+			return r is null ? vDefault : r.Value;
+		}
+
 		public static T? StrTo<T>(string? str) where T : unmanaged {
 			if (str is null)
 				return null;

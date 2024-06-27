@@ -20,6 +20,7 @@ namespace Biscuit {
 
 	public:
 		bool LoadImage(String^ filename);
+		bool IsValid() { return m_fb != nullptr; }
 		void Close();
 
 		UInt32 BPP() { return m_bpp; }

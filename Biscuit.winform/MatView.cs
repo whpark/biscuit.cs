@@ -196,7 +196,7 @@ namespace Biscuit.winform {
 			m_imgView = null;
 
 			// original image
-			if (bCopy) {
+			if (bCopy && img is not null) {
 				m_img = new();
 				img.CopyTo(m_img);
 			}

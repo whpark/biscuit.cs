@@ -380,6 +380,14 @@ namespace Biscuit {
 		return nullptr;
 	}
 
+	bool xImageHelper::IsPaletteImage() {
+		if (!m_fb)
+			return false;
+		int bpp = FreeImage_GetBPP(m_fb);
+		
+		return (bpp <= 8) and FreeImage_GetPalette(m_fb);
+	}
+
 	bool xImageHelper::FlipXY(bool bHorz, bool bVert) {
 		if (!m_fb)
 			return false;

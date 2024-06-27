@@ -34,6 +34,7 @@ namespace Biscuit {
 		CV::Mat^ GetImage(bool bBGRtoRGB);
 		CV::Mat^ GetIndexImage();	// Get Pre-Palette Image
 		CV::Mat^ GetPalette();		// Get Palette Image (1x256x3)
+		bool IsPaletteImage();
 
 		bool FlipXY(bool bHorz, bool bVert);
 		bool Rotate(double angle_deg /* 0, 90, -90, 180, ... 90n */);

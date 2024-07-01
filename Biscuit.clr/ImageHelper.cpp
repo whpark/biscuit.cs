@@ -7,6 +7,17 @@ using namespace OpenCvSharp;
 namespace CV = OpenCvSharp;
 
 namespace Biscuit {
+	xImageHelper::xImageHelper(FIBITMAP* fb) {
+		if (!fb)
+			return ;
+		m_bpp = FreeImage_GetBPP(fb);
+		m_pitch = FreeImage_GetPitch(fb);
+		m_width = FreeImage_GetWidth(fb);
+		m_height = FreeImage_GetHeight(fb);
+		m_dotsPerMeterX = FreeImage_GetDotsPerMeterX(fb);
+		m_dotsPerMeterY = FreeImage_GetDotsPerMeterY(fb);
+		m_fb = fb;
+	}
 
 	xImageHelper::~xImageHelper() {
 		Close();
@@ -414,6 +425,16 @@ namespace Biscuit {
 		m_fb = fb;
 
 		return true;
+	}
+
+	xImageHelper^ xImageHelper::GetRotated(double angle_deg) {
+		if (!m_fb)
+			return nullptr;
+		auto* fb = FreeImage_Rotate(m_fb, angle_deg);
+		if (!fb)
+			return nullptr;
+
+		return gcnew xImageHelper(fb);
 	}
 
 	BitmapData^ xImageHelper::GetBitmapData(CV::Mat^ mat) {

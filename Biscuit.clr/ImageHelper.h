@@ -16,6 +16,9 @@ namespace Biscuit {
 		uint32_t m_dotsPerMeterX{}, m_dotsPerMeterY{};
 
 	public:
+		xImageHelper() {}
+		xImageHelper(FIBITMAP* fbToBeMoved);
+	public:
 		~xImageHelper();
 
 	public:
@@ -39,6 +42,8 @@ namespace Biscuit {
 
 		bool FlipXY(bool bHorz, bool bVert);
 		bool Rotate(double angle_deg /* 0, 90, -90, 180, ... 90n */);
+
+		xImageHelper^ GetRotated(double angle_deg /* 0, 90, -90, 180, ... 90n */);
 
 	public:
 		static BitmapData^ GetBitmapData(CV::Mat^ mat);

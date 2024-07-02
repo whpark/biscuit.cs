@@ -71,8 +71,8 @@ namespace Biscuit {
 				return false;
 			return true
 				&& m_sections.Count == B.m_sections.Count
-				&& m_sections.SequenceEqual(B.m_sections)
-				&& m_items.SequenceEqual(B.m_items)
+				&& misc.EqualsMap(m_sections, B.m_sections)
+				&& misc.EqualsLst(m_items, B.m_items)
 				&& m_line == B.m_line
 				&& m_config.Equals(B.m_config)
 				;

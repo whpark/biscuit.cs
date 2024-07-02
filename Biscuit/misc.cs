@@ -11,6 +11,49 @@ using CV = OpenCvSharp;
 
 namespace Biscuit {
 	public static class misc {
+		public static bool EqualsLst<T>(IEnumerable<T> a, IEnumerable<T> b) where T : IEquatable<T> {
+			if (a is null && b is null)
+				return true;
+			if (a is null || b is null)
+				return false;
+			if (a.Count() != b.Count())
+				return false;
+			for (int i = 0; i < a.Count(); i++) {
+				if (!a.ElementAt(i).Equals(b.ElementAt(i)))
+					return false;
+			}
+			return true;
+		}
+		public static bool EqualsMap<Key, T>(Dictionary<Key, T> a, Dictionary<Key, T> b) where T : IEquatable<T> {
+			if (a is null && b is null)
+				return true;
+			if (a is null || b is null)
+				return false;
+			if (a.Count() != b.Count())
+				return false;
+			foreach (var (key, value) in a) {
+				if (!b.ContainsKey(key))
+					return false;
+				if (!value.Equals(b[key]))
+					return false;
+			}
+			return true;
+		}
+		public static bool EqualsMap<Key, T>(Dictionary<Key, IEnumerable<T>> a, Dictionary<Key, IEnumerable<T>> b) where T : IEquatable<T> {
+			if (a is null && b is null)
+				return true;
+			if (a is null || b is null)
+				return false;
+			if (a.Count() != b.Count())
+				return false;
+			foreach (var (key, value) in a) {
+				if (!b.ContainsKey(key))
+					return false;
+				if (!EqualsLst(value, b[key]))
+					return false;
+			}
+			return true;
+		}
 
 		static Regex regexInt = new Regex(@"\s*^[-+]?\s*(\d+)", RegexOptions.Compiled);
 		static Regex regexDouble = new Regex(@"\s*^[-+]?\s*(\d+(\.\d*)?|\.\d+)([eE][-+]?\d+)?", RegexOptions.Compiled);

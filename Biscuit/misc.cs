@@ -126,7 +126,7 @@ namespace Biscuit {
 			if (!m.Success || m.Index != 0) {
 				return null;
 			}
-			return int.Parse(m.Groups[1].Value);
+			return int.Parse(m.Groups[0].Value);
 		}
 		public static uint? StrToUInt(string? str) {
 			if (str is null) {
@@ -136,7 +136,7 @@ namespace Biscuit {
 			if (!m.Success || m.Index != 0) {
 				return null;
 			}
-			return uint.Parse(m.Groups[1].Value);
+			return uint.Parse(m.Groups[0].Value);
 		}
 		public static int? StrToInt(string? str, out string? trail) {
 			if (str is null) {
@@ -149,7 +149,7 @@ namespace Biscuit {
 				return null;
 			}
 			trail = str!.Substring(m.Length);
-			return int.Parse(m.Groups[1].Value);
+			return int.Parse(m.Groups[0].Value);
 		}
 		public static uint? StrToUInt(string? str, out string? trail) {
 			if (str is null) {
@@ -162,7 +162,7 @@ namespace Biscuit {
 				return null;
 			}
 			trail = str!.Substring(m.Length);
-			return uint.Parse(m.Groups[1].Value);
+			return uint.Parse(m.Groups[0].Value);
 		}
 		public static double? StrToDouble(string? str) {
 			if (str is null) {
@@ -172,7 +172,7 @@ namespace Biscuit {
 			if (!m.Success || m.Index != 0) {
 				return null;
 			}
-			return double.Parse(m.Groups[1].Value);
+			return double.Parse(m.Groups[0].Value);
 		}
 		public static double? StrToDouble(string? str, out string? trail) {
 			if (str is null) {
@@ -185,7 +185,7 @@ namespace Biscuit {
 				return null;
 			}
 			trail = str!.Substring(m.Length);
-			return double.Parse(m.Groups[1].Value);
+			return double.Parse(m.Groups[0].Value);
 		}
 
 		public static int AdjustAlign128(int w) { return ((w+15)/16*16); }  //	((w+15)>>4)<<4

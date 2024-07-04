@@ -6,6 +6,7 @@ using System;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Data;
+using System.Diagnostics;
 using System.Drawing;
 using System.Linq;
 using System.Text;
@@ -31,6 +32,10 @@ namespace Tester.winform {
 			ui_view.Reg = Registry.CurrentUser.CreateSubKey("Software\\Biscuit.cs\\Biscuit_Tester_Winform");
 			ui_view.RegKey = "MainView";
 			ui_view.LoadSettings();
+
+			string str = "-234234.323fasdfad";
+			double t = misc.StrTo(str, 1.1);
+			Debug.WriteLine($"str : {str} == {t}");
 
 			////var mat = new CV.Mat(65536, 65536, CV.MatType.CV_8UC3, new CV.Scalar(0, 0, 0));
 			//var mat = new CV.Mat(600, 800, CV.MatType.CV_8UC1, new CV.Scalar(0, 0, 0));

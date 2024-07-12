@@ -24,7 +24,7 @@ namespace Biscuit {
 			}
 			return true;
 		}
-		public static bool EqualsMap<Key, T>(Dictionary<Key, T> a, Dictionary<Key, T> b) where T : IEquatable<T> {
+		public static bool EqualsMap<Key, T>(Dictionary<Key, T> a, Dictionary<Key, T> b) where T : IEquatable<T> where Key : notnull {
 			if (a is null && b is null)
 				return true;
 			if (a is null || b is null)
@@ -39,7 +39,7 @@ namespace Biscuit {
 			}
 			return true;
 		}
-		public static bool EqualsMap<Key, T>(Dictionary<Key, IEnumerable<T>> a, Dictionary<Key, IEnumerable<T>> b) where T : IEquatable<T> {
+		public static bool EqualsMap<Key, T>(Dictionary<Key, IEnumerable<T>> a, Dictionary<Key, IEnumerable<T>> b) where T : IEquatable<T> where Key : notnull {
 			if (a is null && b is null)
 				return true;
 			if (a is null || b is null)

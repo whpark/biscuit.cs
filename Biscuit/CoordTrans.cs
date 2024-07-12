@@ -174,7 +174,6 @@ namespace Biscuit {
 				m[1, 0] * pt2.X + m[1, 1] * pt2.Y + m_offset.Y);
 		}
 		public override CV.Point2d TransI(CV.Point2d pt) {
-			bool bOK = false;
 			CV.Mat mat = m_mat.Inv();// (0.0, ref bOK);
 			if (mat == null || CV.Cv2.Determinant(mat) == 0.0)
 				throw new Exception("No Inverse xMatrix.");

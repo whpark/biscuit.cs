@@ -64,11 +64,11 @@ namespace Biscuit {
 			m_config = B.m_config;
 		}
 
-		public bool Equals(xLazyProfile B) {
-			if (this == B)
-				return true;
+		public bool Equals(xLazyProfile? B) {
+			//if (this == B)
+			//	return true;
 			if (B is null)
-				return false;
+				return this is null;
 			return true
 				&& m_sections.Count == B.m_sections.Count
 				&& misc.EqualsMap(m_sections, B.m_sections)

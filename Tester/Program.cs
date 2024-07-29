@@ -26,17 +26,17 @@ public class Program {
 	}
 
 	public static void TestStrToInt() {
-		if (misc.StrToInt("0x123X", 0) != 0x123)
+		if (misc.StrToIntBase("0x123X", 0) != 0x123)
 			throw new Exception();
-		if (misc.StrToInt("0b1001", 0) != 9)
+		if (misc.StrToIntBase("0b1001", 0) != 9)
 			throw new Exception();
-		if (misc.StrToInt("1234", 0) != 1234)
+		if (misc.StrToIntBase("1234", 0) != 1234)
 			throw new Exception();
-		if (misc.StrToUInt("0x123X", 0) != 0x123)
+		if (misc.StrToUIntBase("0x123X", 0) != 0x123)
 			throw new Exception();
-		if (misc.StrToUInt("0b1001", 0) != 9)
+		if (misc.StrToUIntBase("0b1001", 0) != 9)
 			throw new Exception();
-		if (misc.StrToUInt("1234", 0) != 1234)
+		if (misc.StrToUIntBase("1234", 0) != 1234)
 			throw new Exception();
 	}
 }

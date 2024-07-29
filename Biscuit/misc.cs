@@ -121,7 +121,7 @@ namespace Biscuit {
 			return r;
 		}
 
-		public static int? StrToInt(string? str, int numericBase) {
+		public static int? StrToIntBase(string? str, int numericBase) {
 			if (str is null) {
 				return null;
 			}
@@ -141,7 +141,7 @@ namespace Biscuit {
 			}
 			return Convert.ToInt32(str, numericBase);
 		}
-		public static uint? StrToUInt(string? str, int numericBase) {
+		public static uint? StrToUIntBase(string? str, int numericBase) {
 			if (str is null) {
 				return null;
 			}
@@ -162,64 +162,6 @@ namespace Biscuit {
 			return Convert.ToUInt32(str, numericBase);
 		}
 
-		public static int? StrToInt(string? str, out string? trail, int numericBase) {
-			if (str is null) {
-				trail = null;
-				return null;
-			}
-			trail = str;
-			if (numericBase == 0) {
-				var m = regexHex.Match(str);
-				if (m.Success && m.Index == 0) {
-					trail = str.Substring(m.Length);
-					return Convert.ToInt32(m.Groups[1].Value, 16);
-				}
-				m = regexBin.Match(str);
-				if (m.Success && m.Index == 0) {
-					trail = str.Substring(m.Length);
-					return Convert.ToInt32(m.Groups[1].Value, 2);
-				}
-				m = regexInt.Match(str);
-				if (m.Success && m.Index == 0) {
-					trail = str.Substring(m.Length);
-					return int.Parse(m.Groups[0].Value);
-				}
-			}
-			else {
-				trail = null;
-				return Convert.ToInt32(str, numericBase);
-			}
-			return 0;
-		}
-		public static uint? StrToUInt(string? str, out string? trail, int numericBase) {
-			if (str is null) {
-				trail = null;
-				return null;
-			}
-			trail = str;
-			if (numericBase == 0) {
-				var m = regexHex.Match(str);
-				if (m.Success && m.Index == 0) {
-					trail = str.Substring(m.Length);
-					return Convert.ToUInt32(m.Groups[1].Value, 16);
-				}
-				m = regexBin.Match(str);
-				if (m.Success && m.Index == 0) {
-					trail = str.Substring(m.Length);
-					return Convert.ToUInt32(m.Groups[1].Value, 2);
-				}
-				m = regexInt.Match(str);
-				if (m.Success && m.Index == 0) {
-					trail = str.Substring(m.Length);
-					return uint.Parse(m.Groups[0].Value);
-				}
-			}
-			else {
-				trail = null;
-				return Convert.ToUInt32(str, numericBase);
-			}
-			return 0;
-		}
 		public static int? StrToInt(string? str) {
 			if (str is null) {
 				return null;

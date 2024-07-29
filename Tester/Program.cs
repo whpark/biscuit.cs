@@ -4,6 +4,7 @@ using Biscuit;
 public class Program {
 	public static void Main() {
 		TestProfile();
+		TestStrToInt();
 	}
 
 	public static void TestProfile() {
@@ -22,5 +23,20 @@ public class Program {
 
 		profile["Test"].SetItemValue("LogSetup", false);
 		profile.Save("Test2.cfg");
+	}
+
+	public static void TestStrToInt() {
+		if (misc.StrToInt("0x123X", 0) != 0x123)
+			throw new Exception();
+		if (misc.StrToInt("0b1001", 0) != 9)
+			throw new Exception();
+		if (misc.StrToInt("1234", 0) != 1234)
+			throw new Exception();
+		if (misc.StrToUInt("0x123X", 0) != 0x123)
+			throw new Exception();
+		if (misc.StrToUInt("0b1001", 0) != 9)
+			throw new Exception();
+		if (misc.StrToUInt("1234", 0) != 1234)
+			throw new Exception();
 	}
 }

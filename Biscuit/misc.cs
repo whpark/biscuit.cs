@@ -55,6 +55,9 @@ namespace Biscuit {
 			return true;
 		}
 
+		static Regex regexHex = new Regex(@"\s*^[-+]?\s*0[xX]([0-9a-fA-F]+)", RegexOptions.Compiled);
+		static Regex regexBin = new Regex(@"\s*^[-+]?\s*0[bB]([01]+)", RegexOptions.Compiled);
+		//static Regex regexOct = new Regex(@"\s*^[-+]?\s*0([0-7]+)", RegexOptions.Compiled);
 		static Regex regexInt = new Regex(@"\s*^[-+]?\s*(\d+)", RegexOptions.Compiled);
 		static Regex regexDouble = new Regex(@"\s*^[-+]?\s*(\d+(\.\d*)?|\.\d+)([eE][-+]?\d+)?", RegexOptions.Compiled);
 
@@ -118,6 +121,105 @@ namespace Biscuit {
 			return r;
 		}
 
+		public static int? StrToInt(string? str, int numericBase) {
+			if (str is null) {
+				return null;
+			}
+			if (numericBase == 0) {
+				var m = regexHex.Match(str);
+				if (m.Success && m.Index == 0) {
+					return Convert.ToInt32(m.Groups[1].Value, 16);
+				}
+				m = regexBin.Match(str);
+				if (m.Success && m.Index == 0) {
+					return Convert.ToInt32(m.Groups[1].Value, 2);
+				}
+				m = regexInt.Match(str);
+				if (m.Success && m.Index == 0) {
+					return int.Parse(m.Groups[0].Value);
+				}
+			}
+			return Convert.ToInt32(str, numericBase);
+		}
+		public static uint? StrToUInt(string? str, int numericBase) {
+			if (str is null) {
+				return null;
+			}
+			if (numericBase == 0) {
+				var m = regexHex.Match(str);
+				if (m.Success && m.Index == 0) {
+					return Convert.ToUInt32(m.Groups[1].Value, 16);
+				}
+				m = regexBin.Match(str);
+				if (m.Success && m.Index == 0) {
+					return Convert.ToUInt32(m.Groups[1].Value, 2);
+				}
+				m = regexInt.Match(str);
+				if (m.Success && m.Index == 0) {
+					return uint.Parse(m.Groups[0].Value);
+				}
+			}
+			return Convert.ToUInt32(str, numericBase);
+		}
+
+		public static int? StrToInt(string? str, out string? trail, int numericBase) {
+			if (str is null) {
+				trail = null;
+				return null;
+			}
+			trail = str;
+			if (numericBase == 0) {
+				var m = regexHex.Match(str);
+				if (m.Success && m.Index == 0) {
+					trail = str.Substring(m.Length);
+					return Convert.ToInt32(m.Groups[1].Value, 16);
+				}
+				m = regexBin.Match(str);
+				if (m.Success && m.Index == 0) {
+					trail = str.Substring(m.Length);
+					return Convert.ToInt32(m.Groups[1].Value, 2);
+				}
+				m = regexInt.Match(str);
+				if (m.Success && m.Index == 0) {
+					trail = str.Substring(m.Length);
+					return int.Parse(m.Groups[0].Value);
+				}
+			}
+			else {
+				trail = null;
+				return Convert.ToInt32(str, numericBase);
+			}
+			return 0;
+		}
+		public static uint? StrToUInt(string? str, out string? trail, int numericBase) {
+			if (str is null) {
+				trail = null;
+				return null;
+			}
+			trail = str;
+			if (numericBase == 0) {
+				var m = regexHex.Match(str);
+				if (m.Success && m.Index == 0) {
+					trail = str.Substring(m.Length);
+					return Convert.ToUInt32(m.Groups[1].Value, 16);
+				}
+				m = regexBin.Match(str);
+				if (m.Success && m.Index == 0) {
+					trail = str.Substring(m.Length);
+					return Convert.ToUInt32(m.Groups[1].Value, 2);
+				}
+				m = regexInt.Match(str);
+				if (m.Success && m.Index == 0) {
+					trail = str.Substring(m.Length);
+					return uint.Parse(m.Groups[0].Value);
+				}
+			}
+			else {
+				trail = null;
+				return Convert.ToUInt32(str, numericBase);
+			}
+			return 0;
+		}
 		public static int? StrToInt(string? str) {
 			if (str is null) {
 				return null;

@@ -423,6 +423,12 @@ namespace Biscuit {
 			FreeImage_Unload(fbOld);
 		}
 		m_fb = fb;
+		m_bpp = FreeImage_GetBPP(fb);
+		m_pitch = FreeImage_GetPitch(fb);
+		m_width = FreeImage_GetWidth(fb);
+		m_height = FreeImage_GetHeight(fb);
+		m_dotsPerMeterX = FreeImage_GetDotsPerMeterX(fb);
+		m_dotsPerMeterY = FreeImage_GetDotsPerMeterY(fb);
 
 		return true;
 	}

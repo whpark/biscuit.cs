@@ -287,6 +287,7 @@ namespace Biscuit {
 				var item = m_sections.ElementAt(i);
 				if (funcIsSectionDeprecated(item.Key, item.Value)) {
 					m_sections.Remove(item.Key);
+					i--;
 				}
 			}
 		}

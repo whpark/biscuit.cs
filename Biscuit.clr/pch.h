@@ -15,12 +15,12 @@
 #include <vector>
 #include <algorithm>
 #include <ranges>
-#include <fmt/core.h>
-#include <fmt/xchar.h>
-#include <fmt/chrono.h>
-#include <fmt/std.h>
-#include <fmt/os.h>
-#include <fmt/ranges.h>
+//#include <fmt/core.h>
+//#include <fmt/xchar.h>
+//#include <fmt/chrono.h>
+//#include <fmt/std.h>
+//#include <fmt/os.h>
+//#include <fmt/ranges.h>
 
 #include <FreeImage.h>
 // #include <FreeImagePlus.h>	// Conflicts with clr

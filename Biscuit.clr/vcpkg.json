@@ -1,7 +1,5 @@
 {
   "dependencies": [
-    "fmt",
-    "freeimage",
-    "ms-gsl"
+    "freeimage"
   ]
 }

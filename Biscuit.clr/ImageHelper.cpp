@@ -1,6 +1,6 @@
 #include "pch.h"
 #include "ImageHelper.h"
-#include <gsl/gsl>
+//#include <gsl/gsl>
 
 using namespace System;
 using namespace OpenCvSharp;

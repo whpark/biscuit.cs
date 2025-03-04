@@ -7,6 +7,7 @@
     <ApplicationHighDpiMode>SystemAware</ApplicationHighDpiMode>
     <ForceDesignerDpiUnaware>true</ForceDesignerDpiUnaware>
     <Platforms>AnyCPU;x64</Platforms>
+    <Configurations>Debug;Release</Configurations>
   </PropertyGroup>
   <ItemGroup>
     <PackageReference Include="OpenCvSharp4" Version="4.9.0.20240103" />

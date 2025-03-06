@@ -447,7 +447,7 @@ namespace Biscuit.winform {
 					p = misc.Clamp(p, 0, rectScrollRange.Height);
 					sbVert.Minimum = 0;
 					sbVert.Maximum = Math.Max(0, rectScrollRange.Height/* - rectClient.Height*/);
-					sbVert.LargeChange = rectClient.Height;
+					sbVert.LargeChange = Math.Max(0, rectClient.Height);
 					sbVert.Value = p;
 				}
 			}

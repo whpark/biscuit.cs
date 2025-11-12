@@ -129,20 +129,18 @@ namespace Biscuit.winform {
 			// 
 			ui_scrollbarHorz.Anchor = AnchorStyles.Bottom | AnchorStyles.Left | AnchorStyles.Right;
 			ui_scrollbarHorz.Cursor = Cursors.SizeWE;
-			ui_scrollbarHorz.Location = new Point(0, 98);
+			ui_scrollbarHorz.Location = new Point(0, 94);
 			ui_scrollbarHorz.Name = "ui_scrollbarHorz";
-			ui_scrollbarHorz.ScaleScrollBarForDpiChange = false;
-			ui_scrollbarHorz.Size = new Size(448, 16);
+			ui_scrollbarHorz.Size = new Size(444, 20);
 			ui_scrollbarHorz.TabIndex = 1;
 			ui_scrollbarHorz.Scroll += ui_scrollbarHorz_Scroll;
 			// 
 			// ui_scrollbarVert
 			// 
 			ui_scrollbarVert.Anchor = AnchorStyles.Top | AnchorStyles.Bottom | AnchorStyles.Right;
-			ui_scrollbarVert.Location = new Point(448, 28);
+			ui_scrollbarVert.Location = new Point(444, 27);
 			ui_scrollbarVert.Name = "ui_scrollbarVert";
-			ui_scrollbarVert.ScaleScrollBarForDpiChange = false;
-			ui_scrollbarVert.Size = new Size(16, 69);
+			ui_scrollbarVert.Size = new Size(20, 69);
 			ui_scrollbarVert.TabIndex = 2;
 			ui_scrollbarVert.Scroll += ui_scrollbarVert_Scroll;
 			// 
@@ -169,7 +167,7 @@ namespace Biscuit.winform {
 			ui_picture.Location = new Point(0, 28);
 			ui_picture.Margin = new Padding(3, 2, 3, 2);
 			ui_picture.Name = "ui_picture";
-			ui_picture.Size = new Size(448, 69);
+			ui_picture.Size = new Size(444, 68);
 			ui_picture.TabIndex = 7;
 			ui_picture.TabStop = false;
 			ui_picture.Paint += ui_picture_Paint;
@@ -182,8 +180,8 @@ namespace Biscuit.winform {
 			// 
 			// xMatView
 			// 
-			AutoScaleDimensions = new SizeF(7F, 15F);
-			AutoScaleMode = AutoScaleMode.Font;
+			AutoScaleDimensions = new SizeF(96F, 96F);
+			AutoScaleMode = AutoScaleMode.Dpi;
 			Controls.Add(ui_scrollbarVert);
 			Controls.Add(ui_scrollbarHorz);
 			Controls.Add(ui_picture);

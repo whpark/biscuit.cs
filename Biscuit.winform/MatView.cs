@@ -889,8 +889,14 @@ namespace Biscuit.winform {
 		}
 
 		private void xMatView_Resize(object sender, EventArgs e) {
-			ui_picture.Width = this.Width - ui_picture.Left - ui_scrollbarVert.Width;
-			ui_picture.Height = this.Height - ui_picture.Top - ui_scrollbarHorz.Height;
+			var w = this.ClientSize.Width;
+			var h = this.ClientSize.Height;
+			ui_picture.Width = w - ui_picture.Left - ui_scrollbarVert.Width;
+			ui_picture.Height = h - ui_picture.Top - ui_scrollbarHorz.Height;
+			ui_scrollbarVert.Left = w - ui_scrollbarVert.Width;
+			ui_scrollbarVert.Height = h - ui_scrollbarVert.Top - ui_scrollbarHorz.Height;
+			ui_scrollbarHorz.Top = h - ui_scrollbarHorz.Height;
+			ui_scrollbarHorz.Width = w - ui_scrollbarHorz.Left - ui_scrollbarVert.Width;
 		}
 
 		private void ui_scrollbarHorz_Scroll(object sender, ScrollEventArgs e) {

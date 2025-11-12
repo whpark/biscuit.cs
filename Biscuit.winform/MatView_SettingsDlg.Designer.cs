@@ -99,7 +99,7 @@
 			ui_chkExtendedPanning.AutoSize = true;
 			ui_chkExtendedPanning.Location = new Point(12, 62);
 			ui_chkExtendedPanning.Name = "ui_chkExtendedPanning";
-			ui_chkExtendedPanning.Size = new Size(122, 19);
+			ui_chkExtendedPanning.Size = new Size(121, 19);
 			ui_chkExtendedPanning.TabIndex = 2;
 			ui_chkExtendedPanning.Text = "Extended Panning";
 			ui_chkExtendedPanning.UseVisualStyleBackColor = true;
@@ -109,7 +109,7 @@
 			ui_chkDrawPixelValue.AutoSize = true;
 			ui_chkDrawPixelValue.Location = new Point(12, 112);
 			ui_chkDrawPixelValue.Name = "ui_chkDrawPixelValue";
-			ui_chkDrawPixelValue.Size = new Size(114, 19);
+			ui_chkDrawPixelValue.Size = new Size(113, 19);
 			ui_chkDrawPixelValue.TabIndex = 4;
 			ui_chkDrawPixelValue.Text = "Show Pixel Value";
 			ui_chkDrawPixelValue.UseVisualStyleBackColor = true;
@@ -231,7 +231,7 @@
 			label6.AutoSize = true;
 			label6.Location = new Point(215, 164);
 			label6.Name = "label6";
-			label6.Size = new Size(13, 15);
+			label6.Size = new Size(12, 15);
 			label6.TabIndex = 5;
 			label6.Text = "x";
 			label6.TextAlign = ContentAlignment.MiddleRight;
@@ -241,7 +241,7 @@
 			label7.AutoSize = true;
 			label7.Location = new Point(215, 193);
 			label7.Name = "label7";
-			label7.Size = new Size(20, 15);
+			label7.Size = new Size(19, 15);
 			label7.TabIndex = 5;
 			label7.Text = "px";
 			label7.TextAlign = ContentAlignment.MiddleRight;
@@ -278,8 +278,8 @@
 			// 
 			// MatView_SettingsDlg
 			// 
-			AutoScaleDimensions = new SizeF(7F, 15F);
-			AutoScaleMode = AutoScaleMode.Font;
+			AutoScaleDimensions = new SizeF(96F, 96F);
+			AutoScaleMode = AutoScaleMode.Dpi;
 			ClientSize = new Size(288, 389);
 			Controls.Add(ui_txtBackgroundColor);
 			Controls.Add(ui_btnBackgroundColor);

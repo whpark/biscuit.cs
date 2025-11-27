@@ -1,5 +1,5 @@
 ﻿//=============================================================================
-// 
+//
 // LazyProfile.cs
 //      .ini file parser. lazy iteration.
 // PWH. C++ ==> C#...
@@ -187,14 +187,18 @@ namespace Biscuit {
 			}
 			else {
 				// let empty lines behind.
+				bool bInserted = false;
 				for (int i = m_items.Count-1; i >= 0; i--) {
 					var cur = m_items[i];
 					if (cur.Trim() == "")
 						continue;
 
+					bInserted = true;
 					m_items.Insert(i+1, str);
 					break;
 				}
+				if (!bInserted)
+					m_items.Insert(m_items.Count, str);
 			}
 		}
 

@@ -1,4 +1,4 @@
-﻿using Biscuit;
+using Biscuit;
 using Biscuit.winform;
 using Microsoft.Win32;
 using OpenCvSharp;
@@ -16,6 +16,8 @@ using CV = OpenCvSharp;
 
 namespace Tester.winform {
 	public partial class MainWindow : Form {
+
+		Biscuit.xImageHelper m_loader = new();
 
 		public MainWindow() {
 			// Set Working Directory
@@ -67,7 +69,75 @@ namespace Tester.winform {
 			CV.Mat palette = imgHelper.GetPalette();
 			ui_view.SetImage(mat, true, xMatView.eZOOM.fit2window, false, palette);
 			//ui_view.SetPalette(palette);
+
+			this.Load += (o, e) => {
+				Biscuit.winform.gMisc.LoadWindowPos(Registry.CurrentUser.CreateSubKey("Software\\Biscuit.cs\\Biscuit_Tester_Winform"), this);
+			};
+
+			this.FormClosing += (o, e) => {
+				ui_view.SaveSettings();
+				Biscuit.winform.gMisc.SaveWindowPos(Registry.CurrentUser.CreateSubKey("Software\\Biscuit.cs\\Biscuit_Tester_Winform"), this);
+			};
 		}
 
+		private void ui_btnLoad_Click(object sender, EventArgs e) {
+
+			// open file dialog
+			OpenFileDialog ofd = new OpenFileDialog();
+			ofd.Title = "Open Image File";
+			ofd.Filter = "Image Files|*.bmp;*.dib;*.jpg;*.jpeg;*.jpe;*.jfif;*.png;*.tif;*.tiff;*.gif;*.wmf;*.emf;*.ico|All Files|*.*";
+			if (ofd.ShowDialog() != DialogResult.OK) {
+				return;
+			}
+
+			if (!m_loader.LoadImage(ofd.FileName)) {
+				return;
+			}
+
+			UpdateImage();
+
+		}
+
+		private void UpdateImage() {
+			if (!m_loader.IsValid()) {
+				ui_view.SetImage(null);
+				return;
+			}
+			if (m_loader.IsPaletteImage()) {
+				var mat = m_loader.GetIndexImage();
+				var pal = m_loader.GetPalette();
+				ui_view.SetImage(mat, true, xMatView.eZOOM.fit2window, false, pal);
+			}
+			else {
+				var mat = m_loader.GetImage(false);
+				ui_view.SetImage(mat, true, xMatView.eZOOM.fit2window, false, null);
+			}
+		}
+
+		private void ui_btnRotate_Click(object sender, EventArgs e) {
+			if (!m_loader.IsValid())
+				return;
+
+			m_loader.Rotate(-90);
+			UpdateImage();
+
+		}
+
+		private void ui_btnTF_Click(object sender, EventArgs e) {
+			if (!m_loader.IsValid())
+				return;
+			CV.Mat? mat = null;
+			CV.Mat? palette = null;
+			if (m_loader.IsPaletteImage()) {
+				mat = m_loader.GetIndexImage();
+				palette = m_loader.GetPalette();
+			}
+			else
+				mat = m_loader.GetImage(false);
+
+			CV.Cv2.Flip(mat.T(), mat, FlipMode.Y);
+			ui_view.SetImage(mat, true, xMatView.eZOOM.fit2window, false, palette);
+
+		}
 	}
 }

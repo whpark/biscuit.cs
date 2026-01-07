@@ -55,11 +55,11 @@ namespace Biscuit {
 			return true;
 		}
 
-		static Regex regexHex = new Regex(@"\s*^[-+]?\s*0[xX]([0-9a-fA-F]+)", RegexOptions.Compiled);
-		static Regex regexBin = new Regex(@"\s*^[-+]?\s*0[bB]([01]+)", RegexOptions.Compiled);
-		//static Regex regexOct = new Regex(@"\s*^[-+]?\s*0([0-7]+)", RegexOptions.Compiled);
-		static Regex regexInt = new Regex(@"\s*^[-+]?\s*(\d+)", RegexOptions.Compiled);
-		static Regex regexDouble = new Regex(@"\s*^[-+]?\s*(\d+(\.\d*)?|\.\d+)([eE][-+]?\d+)?", RegexOptions.Compiled);
+		static Regex regexHex = new Regex(@"^\s*[-+]?\s*0[xX]([0-9a-fA-F]+)", RegexOptions.Compiled);
+		static Regex regexBin = new Regex(@"^\s*[-+]?\s*0[bB]([01]+)", RegexOptions.Compiled);
+		//static Regex regexOct = new Regex(@"^\s*[-+]?\s*0([0-7]+)", RegexOptions.Compiled);
+		static Regex regexInt = new Regex(@"^\s*[-+]?\s*(\d+)", RegexOptions.Compiled);
+		static Regex regexDouble = new Regex(@"^\s*[-+]?\s*(\d+(\.\d*)?|\.\d+)([eE][-+]?\d+)?", RegexOptions.Compiled);
 
 		public static T StrTo<T>(string? str, T vDefault) where T : unmanaged {
 			if (str is null)

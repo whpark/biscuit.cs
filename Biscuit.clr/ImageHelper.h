@@ -46,35 +46,26 @@ namespace Biscuit {
 		xImageHelper^ GetRotated(double angle_deg /* 0, 90, -90, 180, ... 90n */);
 
 	public:
+		enum class eFREE_IMAGE_FORMAT : int32_t {
+			FIF_UNKNOWN = -1,
+			FIF_BMP		= 0,  FIF_ICO		= 1,  FIF_JPEG	= 2,		FIF_JNG		= 3,
+			FIF_KOALA	= 4,  FIF_LBM		= 5,  FIF_IFF = FIF_LBM,	FIF_MNG		= 6,
+			FIF_PBM		= 7,  FIF_PBMRAW	= 8,  FIF_PCD		= 9,	FIF_PCX		= 10,
+			FIF_PGM		= 11, FIF_PGMRAW	= 12, FIF_PNG		= 13,	FIF_PPM		= 14,
+			FIF_PPMRAW	= 15, FIF_RAS		= 16, FIF_TARGA		= 17,	FIF_TIFF	= 18,
+			FIF_WBMP	= 19, FIF_PSD		= 20, FIF_CUT		= 21,	FIF_XBM		= 22,
+			FIF_XPM		= 23, FIF_DDS		= 24, FIF_GIF		= 25,	FIF_HDR		= 26,
+			FIF_SGI		= 27, FIF_EXR		= 28, FIF_J2K		= 29,	FIF_JP2		= 30,
+			FIF_PFM		= 31, FIF_PICT		= 32, FIF_RAW		= 33,	FIF_WEBP	= 34,
+			FIF_JXR		= 35
+		};
+
+		static eFREE_IMAGE_FORMAT GetImageFileType(String^ filename);
+		static bool IsImageFile(String^ filename);
+
 		static BitmapData^ GetBitmapData(CV::Mat^ mat);
 
-		static bool PackValue(CV::Mat^ mat, uint32_t row0, uint32_t row1, int32_t bpp, array<int>^ buffer, int^ pos) {
-			//// make sure, bpp is one of 1, 2, 4
-			//if (bpp != 1 && bpp != 2 && bpp != 4)
-			//	return;
-			if (mat->Type() != CV::MatType::CV_8UC1)
-				return false;
-
-			const uint8_t shift0 = 32;
-			uint32_t mask = (1u << bpp) - 1;
-
-			for (uint32_t y = row0; y < row1; y++) {
-				int shift = shift0 - bpp;
-				IntPtr ptr = mat->Ptr(y);
-				for (int x = 0; x < mat->Cols; x++, shift -= bpp) {
-					uint32_t v = ((uint8_t*)ptr.ToPointer())[x];
-					buffer[*pos] |= (int)((v & mask) << (int)shift);
-					if (shift == 0) {
-						(*pos)++;
-						shift = shift0;
-					}
-				}
-				if (shift != shift0-bpp)
-					(*pos)++;
-			}
-
-			return true;
-		}
+		static bool PackValue(CV::Mat^ mat, uint32_t row0, uint32_t row1, int32_t bpp, array<int>^ buffer, int^ pos);
 
 	};
 
